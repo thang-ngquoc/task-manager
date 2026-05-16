@@ -1,0 +1,22 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependency directories
+node_modules/
+
+# Environment variables
+.env
+.env.*
+
+# Serverless/AWS SAM directories
+.aws-sam/
+.serverless/
+
+# Coverage
+coverage/
+
+# OS Files
+.DS_Store
+Thumbs.db
