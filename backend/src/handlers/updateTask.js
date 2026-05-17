@@ -1,67 +1,93 @@
-const { docClient } = require('../shared/dynamodb');
-const { UpdateCommand } =  require('@aws-sdk/lib-dynamodb')
+const { docClient } = require("../shared/dynamodb");
 
-require('dotenv').config();
+const { UpdateCommand } = require("@aws-sdk/lib-dynamodb");
+
+require("dotenv").config();
 
 exports.handler = async (req, res) => {
     try {
         const taskId = req.params.id;
+
         const {
             title,
             description,
             priority,
             dueDate,
-            status
+            status,
         } = req.body;
 
-        if (!taskId) {
-            return res.status(400).json({
-                message: "taskId is required",
-            })
+        const updates = [];
+        const values = {};
+        const names = {};
+
+        if (title !== undefined) {
+            updates.push("title = :title");
+            values[":title"] = title;
         }
 
-        await docClient.send(
+        if (description !== undefined) {
+            updates.push("description = :description");
+            values[":description"] = description;
+        }
+
+        if (priority !== undefined) {
+            updates.push("priority = :priority");
+            values[":priority"] = priority;
+        }
+
+        if (dueDate !== undefined) {
+            updates.push("dueDate = :dueDate");
+            values[":dueDate"] = dueDate;
+        }
+
+        if (status !== undefined) {
+            updates.push("#status = :status");
+            values[":status"] = status;
+            names["#status"] = "status";
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({
+                message: "No fields to update",
+            });
+        }
+
+        const UpdateExpression = `SET ${updates.join(", ")}`;
+
+        const result = await docClient.send(
             new UpdateCommand({
                 TableName: process.env.TABLE_NAME,
+
                 Key: {
-                    taskId: taskId,
+                    taskId,
                 },
 
-                UpdateExpression: `
-                    SET
-                        title = :title,
-                        description = :description,
-                        priority = :priority,
-                        dueDate = :dueDate,
-                        #status = :status
-                `,
+                UpdateExpression,
 
-                ExpressionAttributeValues: {
-                    ":title": title,
-                    ":description": description,
-                    ":priority": priority,
-                    ":dueDate": dueDate,
-                    ":status": status,
-                },
+                ExpressionAttributeValues: values,
 
-                ExpressionAttributeNames: {
-                    "#status": "status",
-                },
+                ExpressionAttributeNames:
+                    Object.keys(names).length > 0
+                        ? names
+                        : undefined,
 
                 ReturnValues: "ALL_NEW",
             })
-        )
+        );
 
         return res.status(200).json({
-            message: "Task updated successfully"
-        })
+            message: "Task updated successfully",
+
+            data: result.Attributes,
+        });
 
     } catch (error) {
-        console.log(`Error updating task: ${error}`);
-        
-        res.status(500).json({
+
+        console.error(error);
+
+        return res.status(500).json({
             message: "Failed to update task",
-            error: error.message
+            error: error.message,
         });
     }
-}
+};
