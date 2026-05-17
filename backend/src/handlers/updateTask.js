@@ -5,6 +5,7 @@ require("dotenv").config();
 
 exports.handler = async (req, res) => {
     try {
+        const userId = req.user.sub;
         const taskId = req.params.id;
 
         const {
@@ -51,6 +52,8 @@ exports.handler = async (req, res) => {
             });
         }
 
+        values[":uid"] = userId;
+
         const UpdateExpression = `SET ${updates.join(", ")}`;
 
         const result = await docClient.send(
@@ -70,6 +73,8 @@ exports.handler = async (req, res) => {
                         ? names
                         : undefined,
 
+                ConditionExpression: "userId = :uid",
+
                 ReturnValues: "ALL_NEW",
             })
         );
@@ -82,6 +87,12 @@ exports.handler = async (req, res) => {
     } catch (error) {
 
         console.error(error);
+
+        if (error.name === "ConditionalCheckFailedException") {
+            return res.status(403).json({
+                message: "You do not have permission to update this task",
+            });
+        }
 
         return res.status(500).json({
             message: "Failed to update task",

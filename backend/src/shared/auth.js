@@ -1,4 +1,5 @@
 const { CognitoJwtVerifier } = require("aws-jwt-verify");
+
 require("dotenv").config();
 
 const verifier = CognitoJwtVerifier.create({

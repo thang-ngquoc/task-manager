@@ -14,6 +14,7 @@ async function authMiddleware(req, res, next) {
         const payload = await verifyToken(token);
         
         req.user = payload;
+        
         next();
     } catch (error) {
         return res.status(401).json({

@@ -5,6 +5,7 @@ require("dotenv").config();
 
 exports.handler = async(req, res) => {
     try {
+        const userId = req.user.sub;
         const taskId = req.params.id;
 
         if (!taskId) {
@@ -18,7 +19,11 @@ exports.handler = async(req, res) => {
                 TableName: process.env.TABLE_NAME,
                 Key: {
                     taskId: taskId,
-                }
+                },
+                ExpressionAttributeValues: {
+                    ":uid": userId,
+                },
+                ConditionExpression: "userId = :uid",
             })
         );
 
@@ -27,6 +32,12 @@ exports.handler = async(req, res) => {
         });
     } catch (error) {
         console.log("Error deleting task:", error);
+
+        if (error.name === "ConditionalCheckFailedException") {
+            return res.status(403).json({
+                message: "You do not have permission to delete this task",
+            });
+        }
 
         res.status(500).json({
             message: "Error deleting task",

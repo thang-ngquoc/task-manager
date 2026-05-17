@@ -5,7 +5,7 @@ require("dotenv").config();
 
 exports.handler = async (req, res) => {
     try {
-        const userId = req.query.userId;
+        const userId = req.user.sub;
 
         if (!userId) {
             return res.status(400).json({

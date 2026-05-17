@@ -6,8 +6,8 @@ require("dotenv").config();
 
 exports.handler = async (req, res) => {
     try {
+        const userId = req.user.sub;
         const { 
-            userId, 
             title, 
             description,
             priority = "medium",
