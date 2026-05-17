@@ -1,5 +1,4 @@
 const { docClient } = require("../shared/dynamodb");
-
 const { UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 
 require("dotenv").config();
@@ -77,7 +76,6 @@ exports.handler = async (req, res) => {
 
         return res.status(200).json({
             message: "Task updated successfully",
-
             data: result.Attributes,
         });
 
