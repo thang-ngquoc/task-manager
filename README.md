@@ -61,85 +61,166 @@ task-manager/
 
 ## DynamoDB Local Setup (Linux / WSL)
 
-Setting up DynamoDB locally allows you to test database interactions without provisioning resources on AWS.
+Setting up DynamoDB locally allows you to develop and test backend APIs without provisioning AWS resources.
+
+---
 
 ### 1. Install Docker
 
-If you haven't installed Docker yet, run the following commands:
+Install Docker:
 
 ```bash
 sudo apt update
-sudo apt install docker.io -y
+sudo apt install docker.io docker-compose-plugin -y
+```
 
+Start and enable Docker:
+
+```bash
 sudo systemctl start docker
 sudo systemctl enable docker
 ```
 
-Verify the installation:
+Verify installation:
 
 ```bash
 docker --version
+docker compose version
 ```
 
-### 2. Run DynamoDB Local
+---
 
-Launch a DynamoDB local container in the background (first time):
+### 2. Project Structure
+
+Create the `docker/dynamodb` folder with proper permissions:
 
 ```bash
-docker run -d \
-  --name dynamodb-local \
-  -p 8000:8000 \
-  amazon/dynamodb-local
+mkdir -p docker/dynamodb
+sudo chmod -R 777 docker/dynamodb
 ```
 
-Verify that the container is running:
+Make sure your project contains the following structure:
+
+```bash
+task-manager/
+├── backend/
+├── frontend/
+├── docker/
+│   └── dynamodb/
+├── docker-compose.yml
+└── .gitignore
+```
+
+The `docker/dynamodb` folder is used to persist DynamoDB Local data.
+
+---
+
+### 3. Start DynamoDB Local + Admin UI
+
+Run both containers:
+
+```bash
+docker compose up -d
+```
+
+Verify containers:
 
 ```bash
 docker ps
 ```
 
-### 3. Install & Run DynamoDB Admin UI
+You should see:
 
-To easily visualize and manage your local database, install the dynamodb-admin tool.
+- `dynamodb-local`
+- `dynamodb-admin`
 
-```bash
-npm install -g dynamodb-admin
+---
+
+### 4. Access DynamoDB
+
+#### DynamoDB Local Endpoint
+
+```txt
+http://localhost:8000
 ```
 
-Start the admin interface:
+#### DynamoDB Admin UI
 
-```bash
-DYNAMO_ENDPOINT=http://localhost:8000 \
-AWS_REGION=local \
-AWS_ACCESS_KEY_ID=fake \
-AWS_SECRET_ACCESS_KEY=fake \
-dynamodb-admin
+Open in browser:
+
+```txt
+http://localhost:8001
 ```
 
-Once running, open your browser and navigate to: `http://localhost:8001`
+The admin UI allows you to:
 
-### 4. Managing the Database Container
+- View tables
+- Insert / edit / delete items
+- Scan table data
+- Inspect records visually
 
-If you need to stop or start the database later on:
+---
 
-- **Stop:**
-  ```bash
-  docker stop dynamodb-local
-  ```
+### 5. Stop / Restart Containers
 
-- **Start (after PC restart):**
-  ```bash
-  sudo systemctl start docker
-  docker start dynamodb-local
-  ```
+#### Stop containers
 
-### 5. Initialize DynamoDB Table
+```bash
+docker compose down
+```
 
-First, navigate to the backend directory, then run the database setup script to create the necessary tables for tasks:
+#### Restart containers
+
+```bash
+docker compose up -d
+```
+
+---
+
+### 6. Initialize Database Tables
+
+Run the setup scripts:
 
 ```bash
 cd backend
-node src/scripts/db.js
+
+node src/scripts/createTasksTable.js
+node src/scripts/seedTasksData.js
+```
+
+These scripts will:
+
+- Create the `TasksTable`
+- Create the `userId-index` GSI
+- Seed mock task data
+
+---
+
+### 7. Common Commands
+
+#### View running containers
+
+```bash
+docker ps
+```
+
+#### View container logs
+
+```bash
+docker logs dynamodb-local
+docker logs dynamodb-admin
+```
+
+#### Remove all containers
+
+```bash
+docker compose down
+```
+
+#### Remove containers + volumes
+
+```bash
+docker compose down -v
 ```
 
 ## Running the Backend 

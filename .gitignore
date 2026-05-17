@@ -1,0 +1,13 @@
+.db
+
+# dependencies
+node_modules/
+
+# env
+.env
+
+# DynamoDB Local
+docker/dynamodb/
+
+# logs
+*.log
