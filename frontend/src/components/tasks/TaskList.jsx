@@ -1,8 +1,16 @@
 import TaskCard from "./TaskCard";
 
 export default function TaskList({ tasks }) {
+    if (!tasks?.length) {
+        return (
+            <div className="glass rounded-2xl py-16 text-center text-muted-foreground text-sm">
+                No tasks found. Create one to get started!
+            </div>
+        );
+    }
+
     return (
-        <div>
+        <div className="flex flex-col gap-4">
             {tasks.map((task) => (
                 <TaskCard key={task.id} task={task} />
             ))}

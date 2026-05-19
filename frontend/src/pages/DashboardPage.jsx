@@ -1,22 +1,14 @@
-import AppLayout from "@/components/layout/AppLayout";
-import TaskFilters from "@/components/tasks/TaskFilter";
-import TaskList from "@/components/tasks/TaskList";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import AppLayout from "@/components/layout/AppLayout";
+import TaskFilter from "@/components/tasks/TaskFilter";
+import TaskList from "@/components/tasks/TaskList";
 import { mockTasks } from "@/data/mockTasks";
 
 export default function DashboardPage() {
     return (
         <AppLayout>
-            <div>
-                <div>
-                    <h1>My Tasks</h1>
-                    <p>Manage your daily workflow.</p>
-                </div>
-
-                <Button>New Task</Button>
-            </div>
-
-            <TaskFilters />
+            <TaskFilter />
             <TaskList tasks={mockTasks} />
         </AppLayout>
     );
