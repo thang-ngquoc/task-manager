@@ -242,3 +242,12 @@ cd backend
 npm install
 npm run dev
 ```
+
+## Running the Frontend
+To run the frontend, use the following command in the root directory:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
