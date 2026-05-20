@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarDays, ChevronDown, ListFilter, X, Plus } from "lucide-react";
+import { CalendarDays, ChevronDown, X, Plus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -11,9 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { PRIORITIES, triggerCls, activeCls } from "@/components/constant";
-
-const controlWidth = "min-h-[35px] h-[35px]";
+import { PRIORITIES, triggerCls, activeCls, controlWidth } from "@/components/constant";
 
 export default function TaskFilter({ onFilterChange, onNewTask }) {
     const [date, setDate]         = useState(null);

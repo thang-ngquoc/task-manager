@@ -32,7 +32,7 @@ export default function TaskForm({ open, onOpenChange, onSubmit, initialValues =
             <DialogContent
                 className="glass-strong border-white/85 rounded-3xl p-0 gap-0
                            shadow-[0_16px_48px_rgba(99,102,241,0.16)] max-w-[440px]
-                           [&>button]:hidden">   {/* hide default close X */}
+                           [&>button]:hidden"> 
 
                 {/* Header */}
                 <DialogHeader className="px-6 pt-6 pb-0 flex flex-row items-start justify-between space-y-0">

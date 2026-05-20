@@ -7,6 +7,8 @@ export const triggerCls = `
 
 export const activeCls = "bg-purple-500/10 border-purple-500/30";
 
+const controlWidth = "min-h-[35px] h-[35px]";
+
 export const PRIORITIES = [
     { value: "all",    label: "All Priority", dot: "bg-purple-300" },
     { value: "high",   label: "High",         dot: "bg-danger" },

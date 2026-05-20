@@ -1,4 +1,4 @@
-import TaskCard from "./TaskCard";
+import TaskCard from "@/components/tasks/TaskCard";
 
 export default function TaskList({ tasks, onEdit, onDelete, onToggleDone }) {
     if (!tasks?.length) {
