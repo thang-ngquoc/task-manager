@@ -11,24 +11,9 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-
-const triggerCls = `
-    h-[38px] px-3 rounded-xl border border-white/75 bg-white/55 backdrop-blur-xl
-    text-sm font-semibold text-purple-700 gap-1.5
-    hover:bg-white/75 transition-colors
-    data-[state=open]:bg-purple-500/10 data-[state=open]:border-purple-500/30
-`;
+import { PRIORITIES, triggerCls, activeCls } from "@/components/constant";
 
 const controlWidth = "min-h-[35px] h-[35px]";
-
-const activeCls = "bg-purple-500/10 border-purple-500/30";
-
-const PRIORITIES = [
-    { value: "all",    label: "All Priority", dot: "bg-purple-300" },
-    { value: "high",   label: "High",         dot: "bg-danger" },
-    { value: "medium", label: "Medium",        dot: "bg-amber-400" },
-    { value: "low",    label: "Low",           dot: "bg-success" },
-];
 
 export default function TaskFilter({ onFilterChange, onNewTask }) {
     const [date, setDate]         = useState(null);

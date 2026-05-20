@@ -1,6 +1,6 @@
 import TaskCard from "./TaskCard";
 
-export default function TaskList({ tasks }) {
+export default function TaskList({ tasks, onEdit, onDelete, onToggleDone }) {
     if (!tasks?.length) {
         return (
             <div className="glass rounded-2xl py-16 text-center text-muted-foreground text-sm">
@@ -12,7 +12,13 @@ export default function TaskList({ tasks }) {
     return (
         <div className="flex flex-col gap-4">
             {tasks.map((task) => (
-                <TaskCard key={task.id} task={task} />
+                <TaskCard 
+                    key={task.id} 
+                    task={task}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onToggleDone={onToggleDone} 
+                />
             ))}
         </div>
     );
