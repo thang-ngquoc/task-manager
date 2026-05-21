@@ -1,24 +1,7 @@
 import { Check, Pencil, Trash2, CalendarDays, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-const priorityStyles = {
-    high:   "bg-pink-50   text-pink-800",
-    medium: "bg-amber-50  text-amber-800",
-    low:    "bg-green-50  text-green-800",
-};
-
-const statusStyles = {
-    pending:     "bg-purple-50 text-purple-700",
-    in_progress: "bg-blue-50   text-blue-700",
-    completed:   "bg-teal-50   text-teal-700",
-};
-
-const statusLabel = {
-    pending:     "Pending",
-    in_progress: "In Progress",
-    completed:   "Done",
-};
+import { priorityStyles, statusStyles, statusLabel } from "@/components/constant";
 
 export default function TaskCard({ task, onEdit, onDelete, onToggleDone }) {
     const done    = task.status === "completed";

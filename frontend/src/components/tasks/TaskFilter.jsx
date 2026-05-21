@@ -80,9 +80,6 @@ export default function TaskFilter({ onFilterChange, onNewTask }) {
                     </PopoverContent>
                 </Popover>
 
-                {/* Separator */}
-                <div className="w-px h-[22px] bg-purple-300/20 flex-shrink-0" />
-
                 {/* Priority */}
                 <Select value={priority || "all"} onValueChange={handlePriority}>
                     <SelectTrigger
@@ -138,7 +135,7 @@ export default function TaskFilter({ onFilterChange, onNewTask }) {
             <Button
                 onClick={onNewTask}
                 className="flex items-center gap-2 h-[38px] rounded-xl 
-                            px-5 font-bold border border-white/75
+                            px-5 font-semibold border border-white/75
                             shadow-[0_4px_14px_rgba(124,58,237,0.30)]">
                 <Plus className="w-4 h-4" />
                 New Task
