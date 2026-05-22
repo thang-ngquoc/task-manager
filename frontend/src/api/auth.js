@@ -4,7 +4,8 @@ import {
     signOut,
     confirmSignUp,
     getCurrentUser,
-    fetchAuthSession
+    fetchAuthSession,
+    resendSignUpCode
 } from "aws-amplify/auth";
 
 export const register = async (email, password) => { 
@@ -18,8 +19,12 @@ export const register = async (email, password) => {
 export const confirmRegistration = async (email, code) => {
     return await confirmSignUp({
         username: email,
-        password
+        confirmationCode: code
     });
+};
+
+export const resendConfirmationCode = async (email) => {
+    return await resendSignUpCode({ username: email });
 };
 
 export const login = async (email, password) => {

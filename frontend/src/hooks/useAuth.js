@@ -1,9 +1,15 @@
 import { login, logout, register } from "@/api/auth";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "@/auth/AuthContext";
+
+export function useAuth() {
+    return useContext(AuthContext);
+}
 
 export function useLogin() {
     const navigate = useNavigate();
+    const { checkAuth } = useContext(AuthContext);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -13,9 +19,10 @@ export function useLogin() {
 
         try {
             await login(email, password);
+            await checkAuth();
             navigate("/");
         } catch (err) {
-            setError(error.message || "Failed to login");
+            setError(err.message || "Failed to login");
         } finally {
             setIsLoading(false);
         }
@@ -26,6 +33,7 @@ export function useLogin() {
 
 export function useSignup() {
     const navigate = useNavigate();
+    const { checkAuth } = useContext(AuthContext);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -35,9 +43,12 @@ export function useSignup() {
 
         try {
             await register(email, password);
-            navigate("/");
+            await checkAuth();
+            navigate("/confirm");
+            return true;
         } catch (err) {
-            setError(error.message || "Failed to signup");
+            setError(err.message || "Failed to signup");
+            return false;
         } finally {
             setIsLoading(false);
         }
@@ -48,6 +59,7 @@ export function useSignup() {
 
 export function useLogout() {
     const navigate = useNavigate();
+    const { logout: ctxLogout } = useContext(AuthContext);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -56,10 +68,10 @@ export function useLogout() {
         setIsLoading(true);
 
         try {
-            await logout();
+            await ctxLogout();
             navigate("/login");
         } catch (err) {
-            setError(error.message || "Failed to logout");
+            setError(err.message || "Failed to logout");
         } finally {
             setIsLoading(false);
         }
