@@ -1,112 +1,136 @@
+import { useState } from "react";
 import { Check, Pencil, Trash2, CalendarDays, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { priorityStyles, statusStyles, statusLabel } from "@/components/constant";
+import { priorityStyles, statusStyles, statusLabel } from "@/lib/constant";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
 export default function TaskCard({ task, onEdit, onDelete, onToggleDone }) {
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    const today = new Date().toISOString().split("T")[0];
     const done    = task.status === "completed";
-    const overdue = !done && task.isOverdue;
+    const overdue = !done && (task.dueDate < today);
+
+    const handleDeleteClick = () => {
+        onDelete?.(task.taskId);
+        setShowDeleteConfirm(false);
+    }
 
     return (
-        <Card className={[
-            "glass border-white/75 rounded-[18px] overflow-hidden p-0 gap-0",
-            "hover:shadow-[0_4px_24px_rgba(139,92,246,0.10)] transition-shadow",
-            done    && "opacity-75",
-            overdue && "border-danger/30",
-        ].filter(Boolean).join(" ")}>
+        <>
+            <Card className={[
+                "glass border-white/75 rounded-[18px] overflow-hidden p-0 gap-0",
+                "hover:shadow-[0_4px_24px_rgba(139,92,246,0.10)] transition-shadow",
+                done    && "opacity-75",
+                overdue && "border-danger/30",
+            ].filter(Boolean).join(" ")}>
 
-            {/* ── Top section ── */}
-            <CardHeader className="flex flex-row items-start gap-3 px-4 pt-4 pb-3 space-y-0">
-                {/* Title + description + badges */}
-                <div className="flex-1 min-w-0">
-                    <CardTitle className={[
-                        "text-sm font-bold leading-snug",
-                        done ? "line-through text-muted-foreground" : "text-foreground",
-                    ].join(" ")}>
-                        {task.title}
-                    </CardTitle>
+                {/* ── Top section ── */}
+                <CardHeader className="flex flex-row items-start gap-3 px-4 pt-4 pb-3 space-y-0">
+                    {/* Title + description + badges */}
+                    <div className="flex-1 min-w-0">
+                        <CardTitle className={[
+                            "text-sm font-bold leading-snug",
+                            done ? "line-through text-muted-foreground" : "text-foreground",
+                        ].join(" ")}>
+                            {task.title}
+                        </CardTitle>
 
-                    {task.description && (
-                        <CardContent className="p-0 mt-1">
-                            <p className={[
-                                "text-[12.5px] leading-relaxed line-clamp-2",
-                                done ? "text-text-subtle" : "text-muted-foreground",
-                            ].join(" ")}>
-                                {task.description}
-                            </p>
-                        </CardContent>
-                    )}
+                        {task.description && (
+                            <CardContent className="p-0 mt-1">
+                                <p className={[
+                                    "text-[12.5px] leading-relaxed line-clamp-2",
+                                    done ? "text-text-subtle" : "text-muted-foreground",
+                                ].join(" ")}>
+                                    {task.description}
+                                </p>
+                            </CardContent>
+                        )}
 
-                    {/* Badges */}
-                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                        <span className={`text-[10.5px] font-bold px-2.5 py-0.5 rounded-full
-                                          ${priorityStyles[task.priority]}`}>
-                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                        </span>
-                        <span className={`text-[10.5px] font-bold px-2.5 py-0.5 rounded-full
-                                          ${statusStyles[task.status]}`}>
-                            {statusLabel[task.status]}
-                        </span>
+                        {/* Badges */}
+                        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                            <span className={`text-[10.5px] font-bold px-2.5 py-0.5 rounded-full
+                                            ${priorityStyles[task.priority]}`}>
+                                {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                            </span>
+                            <span className={`text-[10.5px] font-bold px-2.5 py-0.5 rounded-full
+                                            ${statusStyles[task.status]}`}>
+                                {statusLabel[task.status]}
+                            </span>
+                        </div>
                     </div>
-                </div>
 
-                                    {/* Edit */}
-                    <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => onEdit?.(task)}
-                        aria-label="Edit task"
-                        className="w-[28px] h-[28px] rounded-[8px] border-white/75 bg-white/50
-                                   text-muted-foreground hover:bg-purple-500/8 hover:text-purple-700
-                                   hover:border-purple-500/20">
-                        <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-
-                    {/* Delete */}
-                    <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => onDelete?.(task.id)}
-                        aria-label="Delete task"
-                        className="w-[28px] h-[28px] rounded-[8px] border-white/75 bg-white/50
-                                   text-muted-foreground hover:bg-danger/10 hover:text-danger
-                                   hover:border-danger/25">
-                        <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-            </CardHeader>
-
-            {/* ── Footer ── */}
-            <CardFooter className="flex items-center justify-between gap-3
-                                   px-4 py-2.5 border-t border-white/60
-                                   bg-white/25">
-
-                {/* Due date */}
-                <span className={`flex items-center gap-1.5 text-[11.5px]
-                                  ${overdue ? "text-danger font-semibold" : "text-muted-foreground"}`}>
-                    {overdue
-                        ? <AlertCircle className="w-3 h-3" />
-                        : <CalendarDays className="w-3 h-3" />}
-                    {task.dueDate}
-                    {overdue && " · Overdue"}
-                </span>
-
-                {/* Actions */}
-                <div className="flex items-center gap-1.5">
-                    {/* Mark as done — only shown when not yet done */}
-                    {!done && (
+                        {/* Edit */}
                         <Button
-                            size="sm"
+                            size="icon"
                             variant="outline"
-                            onClick={() => onToggleDone?.(task.id)}
-                            className="h-[30px] px-2.5 rounded-[9px] text-xs font-semibold gap-1.5
-                                       border-white/75 bg-white/50 text-success
-                                       hover:bg-success/15 hover:border-success/35">
-                            <Check className="w-3 h-3" strokeWidth={2.5} />
-                            Done
+                            onClick={() => onEdit?.(task)}
+                            aria-label="Edit task"
+                            className="w-[28px] h-[28px] rounded-[8px] border-white/75 bg-white/50
+                                    text-muted-foreground hover:bg-purple-500/8 hover:text-purple-700
+                                    hover:border-purple-500/20">
+                            <Pencil className="w-3.5 h-3.5" />
                         </Button>
-                    )}
-                </div>
-            </CardFooter>
-        </Card>
+
+                        {/* Delete */}
+                        <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={() => setShowDeleteConfirm(true)}
+                            aria-label="Delete task"
+                            className="w-[28px] h-[28px] rounded-[8px] border-white/75 bg-white/50
+                                    text-muted-foreground hover:bg-danger/10 hover:text-danger
+                                    hover:border-danger/25">
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                </CardHeader>
+
+                {/* ── Footer ── */}
+                <CardFooter className="flex items-center justify-between gap-3
+                                    px-4 py-2.5 border-t border-white/60
+                                    bg-white/25">
+
+                    {/* Due date */}
+                    <span className={`flex items-center gap-1.5 text-[11.5px]
+                                    ${overdue ? "text-danger font-semibold" : "text-muted-foreground"}`}>
+                        {overdue
+                            ? <AlertCircle className="w-3 h-3" />
+                            : <CalendarDays className="w-3 h-3" />}
+                        {task.dueDate}
+                        {overdue && " · Overdue"}
+                    </span>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1.5">
+                        {/* Mark as done — only shown when not yet done */}
+                        {!done && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => onToggleDone?.(task)}
+                                className="h-[30px] px-2.5 rounded-[9px] text-xs font-semibold gap-1.5
+                                        border-white/75 bg-white/50 text-success
+                                        hover:bg-success/15 hover:border-success/35">
+                                <Check className="w-3 h-3" strokeWidth={2.5} />
+                                Done
+                            </Button>
+                        )}
+                    </div>
+                </CardFooter>
+            </Card>
+
+
+            {/* Delete confirmation dialog */}
+            <ConfirmDialog
+                open={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleDeleteClick}
+                title="Delete Task"
+                description="Are you sure you want to delete this task? This action cannot be undone."
+                confirmText="Delete"
+                variant="danger"
+            />
+        </>
     );
 }

@@ -1,4 +1,4 @@
-import Header from '@/components/layout/Header'
+import Header from '@/layouts/Header'
 
 export default function AppLayout({ children }) {
     return (

@@ -3,6 +3,7 @@ import DashboardPage from './pages/DashboardPage'
 import SignupPage from './pages/SignupPage'
 import LoginPage from './pages/LoginPage'
 import ConfirmPage from './pages/ConfirmPage'
+import "@/amplifyConfig"
 
 function App() {
   return (

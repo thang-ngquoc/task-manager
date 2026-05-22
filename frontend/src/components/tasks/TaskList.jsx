@@ -13,7 +13,7 @@ export default function TaskList({ tasks, onEdit, onDelete, onToggleDone }) {
         <div className="flex flex-col gap-4">
             {tasks.map((task) => (
                 <TaskCard 
-                    key={task.id} 
+                    key={task.taskId} 
                     task={task}
                     onEdit={onEdit}
                     onDelete={onDelete}

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { PRIORITIES, triggerCls, activeCls, controlWidth } from "@/components/constant";
+import { PRIORITIES, triggerCls, activeCls, controlWidth } from "@/lib/constant";
 
 export default function TaskFilter({ onFilterChange, onNewTask }) {
     const [date, setDate]         = useState(null);

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
-import { PRIORITIES, PRIORITY_STYLES, triggerCls, activeCls } from "@/components/constant";
+import { PRIORITIES, PRIORITY_STYLES, triggerCls, activeCls } from "@/lib/constant";
 
 
 export default function TaskForm({ open, onOpenChange, onSubmit, initialValues = {}, mode = "create" }) {

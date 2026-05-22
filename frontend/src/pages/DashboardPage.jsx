@@ -1,15 +1,22 @@
 import { useState, useMemo } from "react";
-import AppLayout from "@/components/layout/AppLayout";
+import AppLayout from "@/layouts/AppLayout";
 import TaskFilter from "@/components/tasks/TaskFilter";
 import TaskList from "@/components/tasks/TaskList";
 import { mockTasks } from "@/data/mockTasks";
 import TaskForm from "@/components/tasks/TaskForm";
+import { useCreateTask, useDeleteTask, useGetTasks, useUpdateTask } from "@/hooks/useTasks";
 
 export default function DashboardPage() {
-    const [tasks,       setTasks]       = useState(mockTasks);
     const [filters,     setFilters]     = useState({ dueDate: "", priority: "" });
-    const [modalMode,   setModalMode]   = useState(null);   // "create" | "edit" | null
+    const [modalMode,   setModalMode]   = useState(null);
     const [editingTask, setEditingTask] = useState(null);
+
+    const { isLoading, error, refetch } = useGetTasks();
+    const { createTask } = useCreateTask();
+    const { updateTask } = useUpdateTask();
+    const { deleteTask } = useDeleteTask();
+
+    const tasks = mockTasks; // Replace with actual data from useGetTasks when API is ready
 
     // ── Filter logic ──────────────────────────────────────
     const filteredTasks = useMemo(() => tasks.filter(task => {
@@ -38,26 +45,41 @@ export default function DashboardPage() {
         setEditingTask(null);
     }
 
-    function handleSubmit(values) {
-        if (modalMode === "create") {
-            setTasks(prev => [...prev, { id: Date.now(), ...values }]);
-        } else {
-            setTasks(prev => prev.map(t =>
-                t.id === editingTask.id ? { ...t, ...values } : t
-            ));
+    async function handleSubmit(values) {
+        try {
+            if (modalMode === "create") await createTask(values);
+            else await updateTask(values);
+
+            await refetch();
+            closeModal();
+        } catch (err) {
+            console.error(err);
         }
     }
 
-    function handleDelete(id) {
-        setTasks(prev => prev.filter(t => t.id !== id));
+    async function handleDelete(id) {
+        try {
+            await deleteTask(id);
+            await refetch();
+        } catch (err) {
+            console.error(err);
+        }
     }
 
-    function handleToggleDone(id) {
-        setTasks(prev => prev.map(t =>
-            t.id === id
-                ? { ...t, status: t.status === "completed" ? "pending" : "completed" }
-                : t
-        ));
+    async function handleToggleDone(task) {
+        try {
+            await updateTask(task.taskId, {
+                ...task,
+                status:
+                    task.status === "completed"
+                        ? "pending"
+                        : "completed",
+            });
+
+            await refetch();
+        } catch (err) {
+            console.error(err);
+        }
     }
 
     return (

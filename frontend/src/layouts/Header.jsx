@@ -1,8 +1,19 @@
+import { useState } from "react";
 import { LogOut, LayoutList } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import { logout } from "@/api/auth";
 
 export default function Header() {
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+    const handleLogoutClick = () => {
+        logout();
+        setShowLogoutConfirm(false);
+    };
+
     return (
+        <>
         <header className="sticky top-0 z-40 w-full px-6 py-4">
             <div className="flex items-center justify-between gap-4
                             bg-white/30 backdrop-blur-2xl
@@ -30,13 +41,25 @@ export default function Header() {
                                         border-danger/20 rounded-[10px] px-3 py-1.5 
                                         text-[12.5px] font-bold text-danger 
                                         hover:bg-danger/14 ransition-colors"
-                            aria-label="Log out">
+                            aria-label="Log out"
+                            onClick={() => setShowLogoutConfirm(true)} >
                         <LogOut className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">Logout</span>
                     </Button>
                 </div>
-
             </div>
         </header>
+
+            {/* Logout confirmation dialog */}
+            <ConfirmDialog
+                open={showLogoutConfirm}
+                onClose={() => setShowLogoutConfirm(false)}
+                onConfirm={handleLogoutClick}
+                title="Log Out"
+                description="Are you sure you want to log out?"
+                confirmText="Log Out"
+                variant="danger"
+            />
+        </>
     );
 }
