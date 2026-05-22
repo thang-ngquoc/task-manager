@@ -2,7 +2,7 @@ const { verifyToken } = require('../shared/auth');
 
 async function authMiddleware(req, res, next) {
     try {
-        const authHeader = req.headers.authentication;
+        const authHeader = req.headers.authorization;
 
         if (!authHeader) {
             return res.status(401).json({
