@@ -5,7 +5,6 @@ require("dotenv").config();
 
 exports.handler = async (req, res) => {
     try {
-        const userId = req.user.sub;
         const taskId = req.params.id;
 
         const {

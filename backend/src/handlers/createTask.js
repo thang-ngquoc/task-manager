@@ -6,7 +6,6 @@ require("dotenv").config();
 
 exports.handler = async (req, res) => {
     try {
-        const userId = req.user.sub;
         const { 
             title, 
             description,
@@ -15,13 +14,14 @@ exports.handler = async (req, res) => {
             status = "pending",  
         } = req.body;
 
-        if (!userId || !title) {
+        if (!title) {
             return res.status(400).json({
-                message: "userId and title are required fields",
+                message: "title is required field",
             });
         }
 
         const taskId = uuidv4();
+        const userId = "demo-user";
         const createdAt = new Date().toISOString();
 
         await docClient.send(
