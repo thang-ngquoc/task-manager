@@ -1,63 +1,4 @@
-# 1. Project Structure
-
-```bash
-task-manager/
-├── frontend/                     # Frontend React + Vite app
-│   ├── public/                   # Public static files
-│   │   └── favicon.ico           # Website favicon
-│   │
-│   ├── src/                      # Main frontend source code
-│   │   ├── api/                  # Backend API calls
-│   │   │   └── tasksApi.js       # Axios wrapper for calling API Gateway
-│   │   │
-│   │   ├── auth/                 # Authentication handling with Cognito
-│   │   │   ├── AuthContext.jsx   # Global auth state + JWT context
-│   │   │   └── cognito.js        # Cognito / Amplify configuration
-│   │   │
-│   │   ├── components/           # Reusable UI components
-│   │   │   ├── TaskList.jsx      # Displays the list of tasks
-│   │   │   ├── TaskCard.jsx      # UI for individual task items
-│   │   │   ├── TaskForm.jsx      # Form for creating / editing tasks
-│   │   │   ├── FilterBar.jsx     # Filters by priority / due date
-│   │   │   ├── LoginForm.jsx     # Login form
-│   │   │   └── SignUpForm.jsx    # Account registration form
-│   │   │
-│   │   ├── pages/                # Page components for routing
-│   │   │   ├── HomePage.jsx      # Main task management page
-│   │   │   └── AuthPage.jsx      # Login / signup page
-│   │   │
-│   │   ├── App.jsx               # Root component + routing setup
-│   │   ├── main.jsx              # Entry point for rendering the React app
-│   │   └── index.css             # Global CSS styles
-│   │
-│   ├── .env.example              # Environment variables template (API URL, Cognito IDs...)
-│   ├── vite.config.js            # Vite configuration
-│   └── package.json              # Dependencies + npm scripts
-│
-└── backend/                      # Backend Node.js app
-    ├── src/                      # Main backend source code
-    │   ├── shared/               # Shared helper functions
-    │   │   ├── dynamodb.js       # DynamoDB DocumentClient initialization
-    │   │   ├── response.js       # Helper for creating standard JSON responses
-    │   │   └── auth.js           # JWT/Cognito processing helper (if needed)
-    │   │
-    │   ├── handlers/             # Main Lambda handlers
-    │   │   ├── getTasks.js       # GET /tasks
-    │   │   ├── createTask.js     # POST /tasks
-    │   │   ├── updateTask.js     # PUT /tasks/:id
-    │   │   └── deleteTask.js     # DELETE /tasks/:id
-    │   │
-    │   ├── routes/               # Express local server routes
-    │   │   └── tasks.js          # URL mapping to handlers
-    │   │
-    │   └── local-server.js       # Express server for local development
-    │
-    ├── package.json              # Dependencies + npm scripts
-    ├── .env                      # Local environment variables
-    └── template.yaml             # AWS SAM/IaC configuration (optional)
-```
-
-# 2. Setup and Run
+# Setup and Run
 
 ## DynamoDB Local Setup (Linux / WSL)
 
@@ -223,6 +164,15 @@ docker compose down
 docker compose down -v
 ```
 
+## Running the Frontend
+To run the frontend, use the following command in the root directory:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
 ## Running the Backend 
 Before running the backend, ensure that your `.env` file is properly configured with the correct DynamoDB endpoint and credentials (as shown in the example above).
 
@@ -243,11 +193,34 @@ npm install
 npm run dev
 ```
 
-## Running the Frontend
-To run the frontend, use the following command in the root directory:
+## Testing the Backend Locally via cURL
+
+You can test the backend API using `curl`. Here are some examples:
+
+### Get all tasks
 
 ```bash
-cd frontend
-npm install
-npm run dev
+curl http://localhost:3000/tasks
+```
+
+### Create a new task
+
+```bash
+curl -X POST http://localhost:3000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Test Task", "description": "This is a test task from curl", "userId": "user123"}'
+```
+
+### Update a task
+
+```bash
+curl -X PUT http://localhost:3000/tasks/<task-id> \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Updated Task", "status": "completed"}'
+```
+
+### Delete a task
+
+```bash
+curl -X DELETE http://localhost:3000/tasks/<task-id>
 ```
