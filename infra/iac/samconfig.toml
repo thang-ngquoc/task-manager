@@ -1,0 +1,13 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "task-manager-project2"
+resolve_s3 = true
+s3_prefix = "task-manager-project2"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+parameter_overrides = "ProjectName=\"task-manager-project2\" AllowedOrigin=\"https://CHANGE-ME.cloudfront.net\" VpcCidr=\"10.0.0.0/16\" PrivateSubnetACidr=\"10.0.1.0/24\" PrivateSubnetBCidr=\"10.0.2.0/24\" DynamoDBPrefixListId=\"pl-67a5400e\" TableName=\"TasksTable\" DynamoDbReadCapacity=\"5\" DynamoDbWriteCapacity=\"5\" EnableReservedConcurrency=\"false\" LambdaReservedConcurrency=\"5\" ApiRateLimit=\"100\" ApiBurstLimit=\"50\" LogRetentionDays=\"14\""
+image_repositories = []
+
+[default.global.parameters]
+region = "ap-southeast-1"

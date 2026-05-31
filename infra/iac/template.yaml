@@ -55,6 +55,14 @@ Parameters:
     MaxValue: 25
     Description: Keep <= 25 for Free Tier alignment.
 
+  EnableReservedConcurrency:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable Lambda reserved concurrency only when the account quota allows it.
+
   LambdaReservedConcurrency:
     Type: Number
     Default: 5
@@ -77,7 +85,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: nodejs20.x
+    Runtime: nodejs24.x
     MemorySize: 128
     Timeout: 10
     Architectures:
@@ -94,6 +102,9 @@ Globals:
       SubnetIds:
         - !Ref PrivateSubnetA
         - !Ref PrivateSubnetB
+
+Conditions:
+  UseReservedConcurrency: !Equals [!Ref EnableReservedConcurrency, "true"]
 
 Resources:
   # --------------------------------------------------------------------------
@@ -482,7 +493,10 @@ Resources:
       FunctionName: !Sub ${ProjectName}-get-tasks
       Description: GET /tasks - query tasks of the authenticated Cognito user
       Role: !GetAtt GetTasksRole.Arn
-      ReservedConcurrentExecutions: !Ref LambdaReservedConcurrency
+      ReservedConcurrentExecutions: !If
+        - UseReservedConcurrency
+        - !Ref LambdaReservedConcurrency
+        - !Ref AWS::NoValue
       CodeUri: ../../backend/
       Handler: src/handlers/getTasks.lambdaHandler
       Events:
@@ -500,7 +514,10 @@ Resources:
       FunctionName: !Sub ${ProjectName}-create-task
       Description: POST /tasks - create one task for the authenticated Cognito user
       Role: !GetAtt CreateTaskRole.Arn
-      ReservedConcurrentExecutions: !Ref LambdaReservedConcurrency
+      ReservedConcurrentExecutions: !If
+        - UseReservedConcurrency
+        - !Ref LambdaReservedConcurrency
+        - !Ref AWS::NoValue
       CodeUri: ../../backend/
       Handler: src/handlers/createTask.lambdaHandler
       Events:
@@ -518,7 +535,10 @@ Resources:
       FunctionName: !Sub ${ProjectName}-update-task
       Description: PUT /tasks/{id} - update one task owned by the authenticated user
       Role: !GetAtt UpdateTaskRole.Arn
-      ReservedConcurrentExecutions: !Ref LambdaReservedConcurrency
+      ReservedConcurrentExecutions: !If
+        - UseReservedConcurrency
+        - !Ref LambdaReservedConcurrency
+        - !Ref AWS::NoValue
       CodeUri: ../../backend/
       Handler: src/handlers/updateTask.lambdaHandler
       Events:
@@ -526,7 +546,7 @@ Resources:
           Type: Api
           Properties:
             RestApiId: !Ref TaskManagerApi
-        Path: /tasks/{id}
+            Path: /tasks/{id}
             Method: PUT
 
   DeleteTaskFunction:
@@ -536,7 +556,10 @@ Resources:
       FunctionName: !Sub ${ProjectName}-delete-task
       Description: DELETE /tasks/{id} - delete one task owned by the authenticated user
       Role: !GetAtt DeleteTaskRole.Arn
-      ReservedConcurrentExecutions: !Ref LambdaReservedConcurrency
+      ReservedConcurrentExecutions: !If
+        - UseReservedConcurrency
+        - !Ref LambdaReservedConcurrency
+        - !Ref AWS::NoValue
       CodeUri: ../../backend/
       Handler: src/handlers/deleteTask.lambdaHandler
       Events:
@@ -544,7 +567,7 @@ Resources:
           Type: Api
           Properties:
             RestApiId: !Ref TaskManagerApi
-        Path: /tasks/{id}
+            Path: /tasks/{id}
             Method: DELETE
 
 Outputs:
