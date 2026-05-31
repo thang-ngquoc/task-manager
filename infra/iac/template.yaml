@@ -1,0 +1,589 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  PROJECT2 Cloud Computing - Serverless Task Manager core stack.
+  Hybrid IaC template: VPC/private subnets, DynamoDB Gateway Endpoint,
+  DynamoDB + GSI, Cognito, API Gateway REST API, 4 Lambda functions,
+  least-privilege IAM roles, CORS, throttling, reserved concurrency.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: task-manager-project2
+    Description: Prefix for resource names. Use lowercase letters, numbers, and hyphens.
+
+  AllowedOrigin:
+    Type: String
+    Default: https://CHANGE-ME.cloudfront.net
+    Description: >
+      CloudFront domain used in CORS, for example https://d1abc123.cloudfront.net.
+      Do not use '*'. Deploy once with placeholder if needed, then update after CloudFront is created.
+
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+
+  PrivateSubnetACidr:
+    Type: String
+    Default: 10.0.1.0/24
+
+  PrivateSubnetBCidr:
+    Type: String
+    Default: 10.0.2.0/24
+
+  DynamoDBPrefixListId:
+    Type: String
+    Description: >
+      AWS-managed prefix list ID for DynamoDB in this region.
+      Get it with: aws ec2 describe-managed-prefix-lists --filters Name=prefix-list-name,Values=com.amazonaws.$AWS_REGION.dynamodb --query 'PrefixLists[0].PrefixListId' --output text
+
+  TableName:
+    Type: String
+    Default: TasksTable
+
+  DynamoDbReadCapacity:
+    Type: Number
+    Default: 5
+    MinValue: 1
+    MaxValue: 25
+    Description: Keep <= 25 for Free Tier alignment.
+
+  DynamoDbWriteCapacity:
+    Type: Number
+    Default: 5
+    MinValue: 1
+    MaxValue: 25
+    Description: Keep <= 25 for Free Tier alignment.
+
+  LambdaReservedConcurrency:
+    Type: Number
+    Default: 5
+    MinValue: 1
+    MaxValue: 20
+    Description: Conservative concurrency cap for demo/free-tier safety.
+
+  ApiRateLimit:
+    Type: Number
+    Default: 100
+
+  ApiBurstLimit:
+    Type: Number
+    Default: 50
+
+  LogRetentionDays:
+    Type: Number
+    Default: 14
+    AllowedValues: [1, 3, 5, 7, 14, 30, 60, 90]
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    MemorySize: 128
+    Timeout: 10
+    Architectures:
+      - x86_64
+    Tracing: Active
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref TasksTable
+        GSI_NAME: userId-index
+        ALLOWED_ORIGIN: !Ref AllowedOrigin
+    VpcConfig:
+      SecurityGroupIds:
+        - !Ref LambdaSecurityGroup
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+
+Resources:
+  # --------------------------------------------------------------------------
+  # Network: Custom VPC with two private subnets and no NAT Gateway.
+  # --------------------------------------------------------------------------
+  TaskManagerVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-vpc
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref TaskManagerVPC
+      CidrBlock: !Ref PrivateSubnetACidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-private-a
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref TaskManagerVPC
+      CidrBlock: !Ref PrivateSubnetBCidr
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-private-b
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref TaskManagerVPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-private-rt
+
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Lambda SG - outbound HTTPS only to DynamoDB prefix list
+      VpcId: !Ref TaskManagerVPC
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          DestinationPrefixListId: !Ref DynamoDBPrefixListId
+          Description: Allow HTTPS only to AWS-managed DynamoDB prefix list
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-lambda-sg
+
+  DynamoDbGatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      VpcId: !Ref TaskManagerVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.dynamodb
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action:
+              - dynamodb:Query
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:DeleteItem
+            Resource:
+              - !GetAtt TasksTable.Arn
+              - !Sub ${TasksTable.Arn}/index/userId-index
+
+  # --------------------------------------------------------------------------
+  # Database: DynamoDB table + required GSI userId-index.
+  # --------------------------------------------------------------------------
+  TasksTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref TableName
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: !Ref DynamoDbReadCapacity
+        WriteCapacityUnits: !Ref DynamoDbWriteCapacity
+      AttributeDefinitions:
+        - AttributeName: taskId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: taskId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: userId-index
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: !Ref DynamoDbReadCapacity
+            WriteCapacityUnits: !Ref DynamoDbWriteCapacity
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-tasks-table
+
+  # --------------------------------------------------------------------------
+  # Authentication: Cognito User Pool + frontend App Client.
+  # --------------------------------------------------------------------------
+  TaskManagerUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub ${ProjectName}-user-pool
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      UserPoolTags:
+        Project: !Ref ProjectName
+
+  TaskManagerUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub ${ProjectName}-web-client
+      UserPoolId: !Ref TaskManagerUserPool
+      GenerateSecret: false
+      PreventUserExistenceErrors: ENABLED
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+
+  # --------------------------------------------------------------------------
+  # API Gateway REST API with Cognito Authorizer, prod stage, CORS, throttling.
+  # --------------------------------------------------------------------------
+  TaskManagerApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub ${ProjectName}-api
+      StageName: prod
+      EndpointConfiguration: REGIONAL
+      Cors:
+        AllowOrigin: !Sub "'${AllowedOrigin}'"
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        MaxAge: "'600'"
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt TaskManagerUserPool.Arn
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          ThrottlingRateLimit: !Ref ApiRateLimit
+          ThrottlingBurstLimit: !Ref ApiBurstLimit
+          MetricsEnabled: true
+
+  # --------------------------------------------------------------------------
+  # CloudWatch Log Groups. Pre-create for retention and easier evidence.
+  # --------------------------------------------------------------------------
+  GetTasksLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ProjectName}-get-tasks
+      RetentionInDays: !Ref LogRetentionDays
+
+  CreateTaskLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ProjectName}-create-task
+      RetentionInDays: !Ref LogRetentionDays
+
+  UpdateTaskLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ProjectName}-update-task
+      RetentionInDays: !Ref LogRetentionDays
+
+  DeleteTaskLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ProjectName}-delete-task
+      RetentionInDays: !Ref LogRetentionDays
+
+  # --------------------------------------------------------------------------
+  # IAM: four distinct Lambda roles. DynamoDB Resource is table/index ARN only.
+  # EC2 network-interface actions require Resource '*' in AWS IAM.
+  # --------------------------------------------------------------------------
+  GetTasksRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-get-tasks-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: lambda-vpc-logs-and-query-tasks
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: CloudWatchLogsForThisFunction
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ProjectName}-get-tasks:*
+              - Sid: LambdaVpcNetworking
+                Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                Resource: '*'
+              - Sid: QueryTasksTableAndUserIndexOnly
+                Effect: Allow
+                Action:
+                  - dynamodb:Query
+                Resource:
+                  - !GetAtt TasksTable.Arn
+                  - !Sub ${TasksTable.Arn}/index/userId-index
+
+  CreateTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-create-task-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: lambda-vpc-logs-and-put-task
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: CloudWatchLogsForThisFunction
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ProjectName}-create-task:*
+              - Sid: LambdaVpcNetworking
+                Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                Resource: '*'
+              - Sid: PutTaskOnly
+                Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                Resource: !GetAtt TasksTable.Arn
+
+  UpdateTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-update-task-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: lambda-vpc-logs-and-update-task
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: CloudWatchLogsForThisFunction
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ProjectName}-update-task:*
+              - Sid: LambdaVpcNetworking
+                Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                Resource: '*'
+              - Sid: UpdateTaskOnly
+                Effect: Allow
+                Action:
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt TasksTable.Arn
+
+  DeleteTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-delete-task-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: lambda-vpc-logs-and-delete-task
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: CloudWatchLogsForThisFunction
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ProjectName}-delete-task:*
+              - Sid: LambdaVpcNetworking
+                Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                Resource: '*'
+              - Sid: DeleteTaskOnly
+                Effect: Allow
+                Action:
+                  - dynamodb:DeleteItem
+                Resource: !GetAtt TasksTable.Arn
+
+  # --------------------------------------------------------------------------
+  # Lambda Functions: four separate CRUD handlers.
+  # --------------------------------------------------------------------------
+  GetTasksFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: GetTasksLogGroup
+    Properties:
+      FunctionName: !Sub ${ProjectName}-get-tasks
+      Description: GET /tasks - query tasks of the authenticated Cognito user
+      Role: !GetAtt GetTasksRole.Arn
+      ReservedConcurrentExecutions: !Ref LambdaReservedConcurrency
+      CodeUri: ../../backend/
+      Handler: src/handlers/getTasks.lambdaHandler
+      Events:
+        GetTasksApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TaskManagerApi
+            Path: /tasks
+            Method: GET
+
+  CreateTaskFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: CreateTaskLogGroup
+    Properties:
+      FunctionName: !Sub ${ProjectName}-create-task
+      Description: POST /tasks - create one task for the authenticated Cognito user
+      Role: !GetAtt CreateTaskRole.Arn
+      ReservedConcurrentExecutions: !Ref LambdaReservedConcurrency
+      CodeUri: ../../backend/
+      Handler: src/handlers/createTask.lambdaHandler
+      Events:
+        CreateTaskApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TaskManagerApi
+            Path: /tasks
+            Method: POST
+
+  UpdateTaskFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: UpdateTaskLogGroup
+    Properties:
+      FunctionName: !Sub ${ProjectName}-update-task
+      Description: PUT /tasks/{id} - update one task owned by the authenticated user
+      Role: !GetAtt UpdateTaskRole.Arn
+      ReservedConcurrentExecutions: !Ref LambdaReservedConcurrency
+      CodeUri: ../../backend/
+      Handler: src/handlers/updateTask.lambdaHandler
+      Events:
+        UpdateTaskApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TaskManagerApi
+        Path: /tasks/{id}
+            Method: PUT
+
+  DeleteTaskFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: DeleteTaskLogGroup
+    Properties:
+      FunctionName: !Sub ${ProjectName}-delete-task
+      Description: DELETE /tasks/{id} - delete one task owned by the authenticated user
+      Role: !GetAtt DeleteTaskRole.Arn
+      ReservedConcurrentExecutions: !Ref LambdaReservedConcurrency
+      CodeUri: ../../backend/
+      Handler: src/handlers/deleteTask.lambdaHandler
+      Events:
+        DeleteTaskApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TaskManagerApi
+        Path: /tasks/{id}
+            Method: DELETE
+
+Outputs:
+  ApiUrl:
+    Description: Invoke URL of the prod REST API stage
+    Value: !Sub https://${TaskManagerApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod
+
+  UserPoolId:
+    Description: Cognito User Pool ID for frontend config
+    Value: !Ref TaskManagerUserPool
+
+  UserPoolClientId:
+    Description: Cognito App Client ID for frontend config
+    Value: !Ref TaskManagerUserPoolClient
+
+  DynamoDBTableName:
+    Description: DynamoDB table name
+    Value: !Ref TasksTable
+
+  DynamoDBTableArn:
+    Description: DynamoDB table ARN for IAM evidence
+    Value: !GetAtt TasksTable.Arn
+
+  DynamoDbGatewayEndpointId:
+    Description: DynamoDB Gateway VPC Endpoint ID for NE-1/NE-3 evidence
+    Value: !Ref DynamoDbGatewayEndpoint
+
+  VpcId:
+    Description: Custom VPC ID
+    Value: !Ref TaskManagerVPC
+
+  PrivateSubnetAId:
+    Description: Private subnet A ID
+    Value: !Ref PrivateSubnetA
+
+  PrivateSubnetBId:
+    Description: Private subnet B ID
+    Value: !Ref PrivateSubnetB
+
+  LambdaSecurityGroupId:
+    Description: Lambda security group ID
+    Value: !Ref LambdaSecurityGroup
