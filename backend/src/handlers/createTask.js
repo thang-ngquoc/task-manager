@@ -1,24 +1,27 @@
 const { docClient } = require('../shared/dynamodb');
 const { PutCommand } = require('@aws-sdk/lib-dynamodb');
 const { v4: uuidv4 } = require('uuid');
+const { jsonResponse, parseJsonBody, getUserId } = require("../shared/lambda");
 
 require("dotenv").config();
 
-exports.handler = async (req, res) => {
+async function createTask({ userId, body }) {
     try {
-        const userId = req.user.sub;
-        const { 
-            title, 
+        const {
+            title,
             description,
             priority = "medium",
             dueDate,
-            status = "pending",  
-        } = req.body;
+            status = "pending",
+        } = body;
 
         if (!userId || !title) {
-            return res.status(400).json({
-                message: "userId and title are required fields",
-            });
+            return {
+                statusCode: 400,
+                payload: {
+                    message: "userId and title are required fields",
+                },
+            };
         }
 
         const taskId = uuidv4();
@@ -40,24 +43,48 @@ exports.handler = async (req, res) => {
             })
         );
 
-        res.status(201).json({
-            message: 'Task created successfully',
-            data: {
-                taskId,
-                userId,
-                title,
-                description,
-                priority,
-                dueDate,
-                status,
-                createdAt,
+        return {
+            statusCode: 201,
+            payload: {
+                message: "Task created successfully",
+                data: {
+                    taskId,
+                    userId,
+                    title,
+                    description,
+                    priority,
+                    dueDate,
+                    status,
+                    createdAt,
+                },
             },
-        });
+        };
     } catch (error) {
         console.log("Error creating task:", error);
-        res.status(500).json({
-            message: "Failed to create task",
-            error: error.message,
-        })
+        return {
+            statusCode: 500,
+            payload: {
+                message: "Failed to create task",
+                error: error.message,
+            },
+        };
     }
+}
+
+exports.handler = async (req, res) => {
+    const result = await createTask({
+        userId: req.user?.sub,
+        body: req.body || {},
+    });
+
+    return res.status(result.statusCode).json(result.payload);
+};
+
+exports.lambdaHandler = async (event) => {
+    const result = await createTask({
+        userId: getUserId(event),
+        body: parseJsonBody(event),
+    });
+
+    return jsonResponse(result.statusCode, result.payload);
 };

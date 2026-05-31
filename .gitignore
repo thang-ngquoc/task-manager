@@ -11,3 +11,6 @@ docker/dynamodb/
 
 # logs
 *.log
+
+# IDEs
+.github/
