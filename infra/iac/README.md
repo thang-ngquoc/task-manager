@@ -357,26 +357,27 @@ Các output cần ghi lại:
 
 ## 8. Cấu hình frontend sau khi có output
 
-Trong file frontend, ví dụ `frontend/config.js`:
+Frontend của repo là Vite app, nên hãy cấu hình biến môi trường build thay vì tạo `frontend/config.js` thủ công.
 
-```js
-const CONFIG = {
-  region: "ap-southeast-1",
-  apiBaseUrl: "https://<api-id>.execute-api.ap-southeast-1.amazonaws.com/prod",
-  userPoolId: "ap-southeast-1_xxxxxxxxx",
-  clientId: "xxxxxxxxxxxxxxxxxxxxxxxxxx"
-};
+Ví dụ các giá trị cần có:
+
+```text
+VITE_API_ENDPOINT=https://<api-id>.execute-api.ap-southeast-1.amazonaws.com/prod
+VITE_COGNITO_POOL_ID=ap-southeast-1_xxxxxxxxx
+VITE_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+VITE_AWS_REGION=ap-southeast-1
 ```
 
 Lấy các giá trị từ CloudFormation Outputs:
 
 ```text
-apiBaseUrl     <- ApiUrl
-userPoolId     <- UserPoolId
-clientId       <- UserPoolClientId
+VITE_API_ENDPOINT   <- ApiUrl
+VITE_COGNITO_POOL_ID <- UserPoolId
+VITE_COGNITO_CLIENT_ID <- UserPoolClientId
+VITE_AWS_REGION <- ap-southeast-1
 ```
 
-Sau đó upload frontend lên S3 private bucket và tạo CloudFront OAC theo `console-guide.md`.
+Sau đó chạy `npm run build` trong `frontend`, upload nội dung trong `frontend/dist` lên S3 private bucket và tạo CloudFront OAC theo `console-guide.md`.
 
 ---
 

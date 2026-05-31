@@ -101,9 +101,29 @@ Các giá trị này dùng cho frontend config, testing và screenshot evidence.
 
 ## 2. Tạo S3 private bucket bằng Console
 
-Phần này nên làm bằng Console để dễ kiểm tra và chụp bằng chứng SE-1/SE-2.
+Phần này nên làm bằng Console để dễ kiểm tra và chụp bằng chứng SE-1/SE-2. Vì frontend của repo là Vite app, bạn cần build ra thư mục `dist` trước, rồi mới upload nội dung đã build lên S3 private bucket.
 
-### 2.1. Tạo bucket
+### 2.1. Chuẩn bị frontend để build
+
+Frontend đọc biến môi trường lúc build qua `import.meta.env`, nên trước khi chạy build hãy chuẩn bị các giá trị sau theo outputs của stack:
+
+```text
+VITE_API_ENDPOINT=https://<api-id>.execute-api.ap-southeast-1.amazonaws.com/prod
+VITE_COGNITO_POOL_ID=ap-southeast-1_xxxxxxxx
+VITE_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+VITE_AWS_REGION=ap-southeast-1
+```
+
+Sau đó chạy trong thư mục `frontend`:
+
+```bash
+npm install
+npm run build
+```
+
+Kết quả build sẽ nằm trong `frontend/dist`.
+
+### 2.2. Tạo bucket
 
 Vào:
 
@@ -122,29 +142,20 @@ Default encryption: SSE-S3
 Static Website Hosting: KHÔNG bật
 ```
 
-### 2.2. Upload frontend
+Lưu ý: ở bước này bucket phải thật sự private. Chưa thêm bucket policy public và chưa bật website hosting.
 
-Upload các file frontend:
+### 2.3. Upload frontend build output
+
+Upload toàn bộ nội dung đã build trong `frontend/dist`, bao gồm:
 
 ```text
 index.html
-styles.css
-app.js
-config.js
+assets/...
 ```
 
-`config.js` nên chứa output từ stack:
+Nếu build tạo thêm file tĩnh khác, upload luôn toàn bộ nội dung trong `dist`.
 
-```js
-window.APP_CONFIG = {
-  apiBaseUrl: "https://<api-id>.execute-api.ap-southeast-1.amazonaws.com/prod",
-  region: "ap-southeast-1",
-  userPoolId: "ap-southeast-1_xxxxxxxx",
-  userPoolClientId: "xxxxxxxxxxxxxxxxxxxxxxxxxx"
-};
-```
-
-### 2.3. Evidence cần chụp
+### 2.4. Evidence cần chụp
 
 | ID | Cần chụp |
 |---|---|

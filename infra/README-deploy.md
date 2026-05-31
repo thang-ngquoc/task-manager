@@ -1,12 +1,12 @@
 # README Deploy — PROJECT2 Cloud Computing
 
-Tài liệu này hướng dẫn thứ tự triển khai mô hình **Hybrid IaC + Console** cho đồ án PROJECT2: Web App Task Manager serverless trên AWS. Tài liệu đi kèm 2 file trong thư mục `infra/`:
+Tài liệu này hướng dẫn thứ tự triển khai mô hình **Hybrid IaC + Console** cho đồ án PROJECT2: Web App Task Manager serverless trên AWS. Tài liệu đi kèm 3 file trong thư mục `infra/`:
 
 ```text
 infra/
-├── template.yaml        # AWS SAM/CloudFormation template
-├── console-guide.md     # Hướng dẫn thao tác/chụp bằng chứng trên AWS Console
-└── README-deploy.md     # File này
+├── iac/template.yaml            # AWS SAM/CloudFormation template
+├── console/console-guide.md     # Hướng dẫn thao tác/chụp bằng chứng trên AWS Console
+└── README-deploy.md             # File này
 ```
 
 ## 1. Mục tiêu triển khai
@@ -43,7 +43,7 @@ Không dùng wildcard DynamoDB Resource trong IAM policy.
 
 ### 2.1. Phần tạo bằng IaC trong `template.yaml`
 
-`template.yaml` hiện tại tạo các nhóm tài nguyên sau:
+`iac/template.yaml` hiện tại tạo các nhóm tài nguyên sau:
 
 | Nhóm | Resource chính |
 |---|---|
@@ -191,14 +191,13 @@ $env:TABLE_NAME = "TasksTable"
 
 ```text
 project2-task-manager/
+├── backend/
 ├── frontend/
-│   ├── index.html
-│   ├── styles.css
-│   ├── app.js
-│   └── config.js
+│   ├── src/
+│   └── dist/                # Sinh ra sau khi build Vite
 ├── infra/
-│   ├── template.yaml
-│   ├── console-guide.md
+│   ├── iac/template.yaml
+│   ├── console/console-guide.md
 │   └── README-deploy.md
 ├── evidence/
 └── README.md
@@ -210,13 +209,13 @@ Kiểm tra template trước khi deploy:
 
 ```bash
 cd infra
-sam validate --template-file template.yaml
+sam validate --template-file iac/template.yaml
 ```
 
 Nếu có cài `cfn-lint`, có thể kiểm tra thêm:
 
 ```bash
-sam validate --template-file template.yaml --lint
+sam validate --template-file iac/template.yaml --lint
 ```
 
 ---
@@ -296,7 +295,7 @@ Lần deploy đầu tiên dùng `AllowedOrigin` placeholder vì chưa có CloudF
 
 ```bash
 sam deploy --guided \
-  --template-file template.yaml \
+  --template-file iac/template.yaml \
   --stack-name $STACK_NAME \
   --region $AWS_REGION \
   --capabilities CAPABILITY_NAMED_IAM
@@ -331,7 +330,7 @@ Bash:
 
 ```bash
 sam deploy \
-  --template-file template.yaml \
+  --template-file iac/template.yaml \
   --stack-name $STACK_NAME \
   --region $AWS_REGION \
   --capabilities CAPABILITY_NAMED_IAM \
@@ -352,7 +351,7 @@ PowerShell:
 
 ```powershell
 sam deploy `
-  --template-file template.yaml `
+  --template-file iac/template.yaml `
   --stack-name $env:STACK_NAME `
   --region $env:AWS_REGION `
   --capabilities CAPABILITY_NAMED_IAM `
@@ -373,7 +372,7 @@ sam deploy `
 
 ```bash
 sam deploy \
-  --template-file template.yaml \
+  --template-file iac/template.yaml \
   --stack-name $STACK_NAME \
   --region $AWS_REGION \
   --capabilities CAPABILITY_NAMED_IAM \
@@ -695,24 +694,34 @@ Default encryption: SSE-S3
 Static Website Hosting: không bật
 ```
 
+Build frontend (Vite) rồi upload thư mục `dist`:
+
+```bash
+cd frontend
+npm install
+npm run build
+```
+
 Upload frontend files:
 
 ```text
-frontend/index.html
-frontend/styles.css
-frontend/app.js
-frontend/config.js
+frontend/dist/*
 ```
 
-Cập nhật `frontend/config.js` bằng outputs từ stack:
+Cập nhật cấu hình frontend theo file hiện có trong repo:
 
-```js
-window.APP_CONFIG = {
-  apiBaseUrl: "https://<api-id>.execute-api.ap-southeast-1.amazonaws.com/prod",
-  region: "ap-southeast-1",
-  userPoolId: "ap-southeast-1_xxxxxxxx",
-  userPoolClientId: "xxxxxxxxxxxxxxxxxxxxxxxxxx"
-};
+1) Tạo `frontend/.env.production`:
+
+```text
+VITE_AWS_REGION=ap-southeast-1
+VITE_COGNITO_POOL_ID=ap-southeast-1_xxxxxxxx
+VITE_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+2) Cập nhật API base URL trong `frontend/src/api/tasks.js` (hằng số `API_ENDPOINT`) thành:
+
+```text
+https://<api-id>.execute-api.ap-southeast-1.amazonaws.com/prod
 ```
 
 Chụp:
@@ -824,7 +833,7 @@ export CLOUDFRONT_DOMAIN=dxxxxxxxxxxxxx.cloudfront.net
 export ALLOWED_ORIGIN=https://$CLOUDFRONT_DOMAIN
 
 sam deploy \
-  --template-file template.yaml \
+  --template-file iac/template.yaml \
   --stack-name $STACK_NAME \
   --region $AWS_REGION \
   --capabilities CAPABILITY_NAMED_IAM \
@@ -848,7 +857,7 @@ $env:CLOUDFRONT_DOMAIN = "dxxxxxxxxxxxxx.cloudfront.net"
 $env:ALLOWED_ORIGIN = "https://$env:CLOUDFRONT_DOMAIN"
 
 sam deploy `
-  --template-file template.yaml `
+  --template-file iac/template.yaml `
   --stack-name $env:STACK_NAME `
   --region $env:AWS_REGION `
   --capabilities CAPABILITY_NAMED_IAM `
