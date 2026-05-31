@@ -1,6 +1,6 @@
 import { getAccessToken } from "./auth";
 
-const API_ENDPOINT = import.meta.env.API_ENDPOINT || "http://localhost:3000";
+const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || "http://localhost:3000";
 
 const getAuthHeaders = async () => {
     const token = await getAccessToken();
