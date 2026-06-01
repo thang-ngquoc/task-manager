@@ -9,5 +9,13 @@ node_modules/
 # DynamoDB Local
 docker/dynamodb/
 
+# SAM build artifacts
+infra/iac/.aws-sam/
+
 # logs
 *.log
+
+# IDEs
+.github/
+
+note.*

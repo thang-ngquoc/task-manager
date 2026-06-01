@@ -1,17 +1,27 @@
 const { docClient } = require("../shared/dynamodb");
 const { DeleteCommand } = require("@aws-sdk/lib-dynamodb");
+const { jsonResponse, getUserId } = require("../shared/lambda");
 
 require("dotenv").config();
 
-exports.handler = async(req, res) => {
+async function deleteTask({ userId, taskId }) {
     try {
-        const userId = req.user.sub;
-        const taskId = req.params.id;
+        if (!userId) {
+            return {
+                statusCode: 400,
+                payload: {
+                    message: "userId is required",
+                },
+            };
+        }
 
         if (!taskId) {
-            return res.status(400).json({
-                message: "Task ID is required",
-            });
+            return {
+                statusCode: 400,
+                payload: {
+                    message: "Task ID is required",
+                },
+            };
         }
 
         await docClient.send(
@@ -27,21 +37,48 @@ exports.handler = async(req, res) => {
             })
         );
 
-        return res.status(200).json({
-            message: "Task deleted successfully",
-        });
+        return {
+            statusCode: 200,
+            payload: {
+                message: "Task deleted successfully",
+            },
+        };
     } catch (error) {
         console.log("Error deleting task:", error);
 
         if (error.name === "ConditionalCheckFailedException") {
-            return res.status(403).json({
-                message: "You do not have permission to delete this task",
-            });
+            return {
+                statusCode: 403,
+                payload: {
+                    message: "You do not have permission to delete this task",
+                },
+            };
         }
 
-        res.status(500).json({
-            message: "Error deleting task",
-            error: error.message,
-        });
+        return {
+            statusCode: 500,
+            payload: {
+                message: "Error deleting task",
+                error: error.message,
+            },
+        };
     }
 }
+
+exports.handler = async (req, res) => {
+    const result = await deleteTask({
+        userId: req.user?.sub,
+        taskId: req.params.id,
+    });
+
+    return res.status(result.statusCode).json(result.payload);
+};
+
+exports.lambdaHandler = async (event) => {
+    const result = await deleteTask({
+        userId: getUserId(event),
+        taskId: event?.pathParameters?.id,
+    });
+
+    return jsonResponse(result.statusCode, result.payload);
+};

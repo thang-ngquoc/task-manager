@@ -1,12 +1,28 @@
 const { docClient } = require("../shared/dynamodb");
 const { UpdateCommand } = require("@aws-sdk/lib-dynamodb");
+const { jsonResponse, parseJsonBody, getUserId } = require("../shared/lambda");
 
 require("dotenv").config();
 
-exports.handler = async (req, res) => {
+async function updateTask({ userId, taskId, body }) {
     try {
-        const userId = req.user.sub;
-        const taskId = req.params.id;
+        if (!userId) {
+            return {
+                statusCode: 400,
+                payload: {
+                    message: "userId is required",
+                },
+            };
+        }
+
+        if (!taskId) {
+            return {
+                statusCode: 400,
+                payload: {
+                    message: "Task ID is required",
+                },
+            };
+        }
 
         const {
             title,
@@ -14,7 +30,7 @@ exports.handler = async (req, res) => {
             priority,
             dueDate,
             status,
-        } = req.body;
+        } = body;
 
         const updates = [];
         const values = {};
@@ -47,9 +63,12 @@ exports.handler = async (req, res) => {
         }
 
         if (updates.length === 0) {
-            return res.status(400).json({
-                message: "No fields to update",
-            });
+            return {
+                statusCode: 400,
+                payload: {
+                    message: "No fields to update",
+                },
+            };
         }
 
         values[":uid"] = userId;
@@ -59,44 +78,65 @@ exports.handler = async (req, res) => {
         const result = await docClient.send(
             new UpdateCommand({
                 TableName: process.env.TABLE_NAME,
-
                 Key: {
                     taskId,
                 },
-
                 UpdateExpression,
-
                 ExpressionAttributeValues: values,
-
                 ExpressionAttributeNames:
                     Object.keys(names).length > 0
                         ? names
                         : undefined,
-
                 ConditionExpression: "userId = :uid",
-
                 ReturnValues: "ALL_NEW",
             })
         );
 
-        return res.status(200).json({
-            message: "Task updated successfully",
-            data: result.Attributes,
-        });
-
+        return {
+            statusCode: 200,
+            payload: {
+                message: "Task updated successfully",
+                data: result.Attributes,
+            },
+        };
     } catch (error) {
-
         console.error(error);
 
         if (error.name === "ConditionalCheckFailedException") {
-            return res.status(403).json({
-                message: "You do not have permission to update this task",
-            });
+            return {
+                statusCode: 403,
+                payload: {
+                    message: "You do not have permission to update this task",
+                },
+            };
         }
 
-        return res.status(500).json({
-            message: "Failed to update task",
-            error: error.message,
-        });
+        return {
+            statusCode: 500,
+            payload: {
+                message: "Failed to update task",
+                error: error.message,
+            },
+        };
     }
+}
+
+exports.handler = async (req, res) => {
+    const result = await updateTask({
+        userId: req.user?.sub,
+        taskId: req.params.id,
+        body: req.body || {},
+    });
+
+    return res.status(result.statusCode).json(result.payload);
+};
+
+exports.lambdaHandler = async (event) => {
+    const result = await updateTask({
+        userId: getUserId(event),
+        taskId: event?.pathParameters?.id,
+        body: parseJsonBody(event),
+    });
+
+    return jsonResponse(result.statusCode, result.payload);
 };
