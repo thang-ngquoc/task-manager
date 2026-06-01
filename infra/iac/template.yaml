@@ -35,7 +35,7 @@ Parameters:
     Type: String
     Description: >
       AWS-managed prefix list ID for DynamoDB in this region.
-      Get it with: aws ec2 describe-managed-prefix-lists --filters Name=prefix-list-name,Values=com.amazonaws.$AWS_REGION.dynamodb --query 'PrefixLists[0].PrefixListId' --output text
+      Get it with: $region = (aws configure get region --profile tbnguyen274).Trim(); aws ec2 describe-managed-prefix-lists --profile tbnguyen274 --filters "Name=prefix-list-name,Values=com.amazonaws.$region.dynamodb" --query "PrefixLists[0].PrefixListId" --output text
 
   TableName:
     Type: String
@@ -291,6 +291,7 @@ Resources:
     Properties:
       Name: !Sub ${ProjectName}-api
       StageName: prod
+      AlwaysDeploy: true
       EndpointConfiguration: REGIONAL
       Cors:
         AllowOrigin: !Sub "'${AllowedOrigin}'"
