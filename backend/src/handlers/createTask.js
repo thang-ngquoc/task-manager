@@ -1,6 +1,6 @@
 const { docClient } = require('../shared/dynamodb');
 const { PutCommand } = require('@aws-sdk/lib-dynamodb');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { jsonResponse, parseJsonBody, getUserId } = require("../shared/lambda");
 
 require("dotenv").config();
@@ -24,7 +24,7 @@ async function createTask({ userId, body }) {
             };
         }
 
-        const taskId = uuidv4();
+        const taskId = randomUUID();
         const createdAt = new Date().toISOString();
 
         await docClient.send(
