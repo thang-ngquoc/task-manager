@@ -32,12 +32,17 @@ export const login = async (email, password) => {
         username: email,
         password,
     });
-    return await getAccessToken();
+    return await getIdToken();
 };
 
 export const getAccessToken = async () => {
     const session = await fetchAuthSession();
     return session.tokens?.accessToken?.toString();
+};
+
+export const getIdToken = async () => {
+    const session = await fetchAuthSession();
+    return session.tokens?.idToken?.toString();
 };
 
 export const logout = async () => {

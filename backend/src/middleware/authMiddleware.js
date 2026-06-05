@@ -10,7 +10,9 @@ async function authMiddleware(req, res, next) {
             });
         }
 
-        const token = authHeader.split(" ")[1];
+        const token = authHeader.startsWith("Bearer ")
+            ? authHeader.slice("Bearer ".length)
+            : authHeader;
         const payload = await verifyToken(token);
         
         req.user = payload;
