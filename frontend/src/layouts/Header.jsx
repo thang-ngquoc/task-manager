@@ -2,13 +2,14 @@ import { useState } from "react";
 import { LogOut, LayoutList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import { logout } from "@/api/auth";
+import { useLogout } from "@/hooks/useAuth";
 
 export default function Header() {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const { handleLogout, isLoading } = useLogout();
 
-    const handleLogoutClick = () => {
-        logout();
+    const handleLogoutClick = async () => {
+        await handleLogout();
         setShowLogoutConfirm(false);
     };
 
@@ -42,6 +43,7 @@ export default function Header() {
                                         text-[12.5px] font-bold text-danger 
                                         hover:bg-danger/14 ransition-colors"
                             aria-label="Log out"
+                            disabled={isLoading}
                             onClick={() => setShowLogoutConfirm(true)} >
                         <LogOut className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">Logout</span>
@@ -59,6 +61,7 @@ export default function Header() {
                 description="Are you sure you want to log out?"
                 confirmText="Log Out"
                 variant="danger"
+                disabled={isLoading}
             />
         </>
     );

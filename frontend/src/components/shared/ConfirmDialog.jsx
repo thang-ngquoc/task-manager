@@ -19,7 +19,9 @@ import {
  *   title        string
  *   description  string
  *   confirmLabel string         — default "Confirm"
+ *   confirmText  string         — alias for confirmLabel
  *   variant      "danger"|"default"
+ *   disabled     boolean
  */
 export default function ConfirmDialog({
     open,
@@ -28,7 +30,9 @@ export default function ConfirmDialog({
     title,
     description,
     confirmLabel = "Confirm",
+    confirmText,
     variant = "default",
+    disabled = false,
 }) {
     return (
         <AlertDialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -47,12 +51,13 @@ export default function ConfirmDialog({
 
                     <AlertDialogAction
                         onClick={onConfirm}
+                        disabled={disabled}
                         className={
                             variant === "danger"
                                 ? "rounded-[10px] bg-danger/90 hover:bg-danger text-white"
                                 : "rounded-[10px]"
                         }>
-                        {confirmLabel}
+                        {confirmText || confirmLabel}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
