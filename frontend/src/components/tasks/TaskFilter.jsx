@@ -35,7 +35,6 @@ export default function TaskFilter({ onFilterChange, onNewTask }) {
     }
 
     const hasFilters  = !!date || !!priority;
-    const activePriority = PRIORITIES.find(p => p.value === (priority || "all"));
 
     return (
         <div className="flex items-center justify-between gap-3">

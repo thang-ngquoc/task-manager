@@ -31,6 +31,12 @@ export default function LoginForm() {
  
             <CardContent> 
                 <form className="space-y-4" onSubmit={handleSubmit}> 
+                    {error && (
+                        <p className="rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                            {error}
+                        </p>
+                    )}
+
                     <div className="space-y-2"> 
                         <Label htmlFor="email">Email</Label> 
                         <Input  

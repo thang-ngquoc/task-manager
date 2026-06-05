@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import AppLayout from "@/layouts/AppLayout";
 import TaskFilter from "@/components/tasks/TaskFilter";
 import TaskList from "@/components/tasks/TaskList";
-import { mockTasks } from "@/data/mockTasks";
 import TaskForm from "@/components/tasks/TaskForm";
 import { useCreateTask, useDeleteTask, useGetTasks, useUpdateTask } from "@/hooks/useTasks";
 
@@ -11,12 +10,10 @@ export default function DashboardPage() {
     const [modalMode,   setModalMode]   = useState(null);
     const [editingTask, setEditingTask] = useState(null);
 
-    const { isLoading, error, refetch } = useGetTasks();
+    const { tasks, isLoading, error, refetch } = useGetTasks();
     const { createTask } = useCreateTask();
     const { updateTask } = useUpdateTask();
     const { deleteTask } = useDeleteTask();
-
-    const tasks = mockTasks; // Replace with actual data from useGetTasks when API is ready
 
     // ── Filter logic ──────────────────────────────────────
     const filteredTasks = useMemo(() => tasks.filter(task => {
@@ -48,7 +45,7 @@ export default function DashboardPage() {
     async function handleSubmit(values) {
         try {
             if (modalMode === "create") await createTask(values);
-            else await updateTask(values);
+            else await updateTask(editingTask.taskId, values);
 
             await refetch();
             closeModal();
@@ -96,14 +93,25 @@ export default function DashboardPage() {
                 onNewTask={openCreate}
             />
 
-            <TaskList
-                tasks={filteredTasks}
-                onEdit={openEdit}
-                onDelete={handleDelete}
-                onToggleDone={handleToggleDone}
-            />
+            {error ? (
+                <div className="glass rounded-2xl py-16 text-center text-danger text-sm">
+                    {error}
+                </div>
+            ) : isLoading ? (
+                <div className="glass rounded-2xl py-16 text-center text-muted-foreground text-sm">
+                    Loading tasks...
+                </div>
+            ) : (
+                <TaskList
+                    tasks={filteredTasks}
+                    onEdit={openEdit}
+                    onDelete={handleDelete}
+                    onToggleDone={handleToggleDone}
+                />
+            )}
 
             <TaskForm
+                key={editingTask?.taskId ?? modalMode ?? "closed"}
                 open={!!modalMode}
                 onOpenChange={open => !open && closeModal()}
                 mode={modalMode ?? "create"}

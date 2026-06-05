@@ -1,4 +1,4 @@
-import { login, logout, register } from "@/api/auth";
+import { login, register } from "@/api/auth";
 import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "@/auth/AuthContext";
@@ -32,8 +32,6 @@ export function useLogin() {
 }
 
 export function useSignup() {
-    const navigate = useNavigate();
-    const { checkAuth } = useContext(AuthContext);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -43,8 +41,6 @@ export function useSignup() {
 
         try {
             await register(email, password);
-            await checkAuth();
-            navigate("/confirm");
             return true;
         } catch (err) {
             setError(err.message || "Failed to signup");
