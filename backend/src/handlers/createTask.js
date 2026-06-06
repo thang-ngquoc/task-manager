@@ -23,22 +23,22 @@ async function createTask({ userId, body }) {
             status = "pending",
         } = body;
 
-        if (!userId || isBlank(title)) {
+        if (!userId) {
             return {
                 statusCode: 400,
                 payload: {
-                    message: "UserId and title are required fields",
+                    message: "userId is required",
                 },
             };
         }
 
-        if (isBlank(priority) || isBlank(dueDate)) {
+        if (isBlank(title) || isBlank(priority) || isBlank(dueDate)) {
             return {
                 statusCode: 400,
                 payload: {
-                    message: "Priority and dueDate are required fields",
-                },
-            };
+                    message: "Title, priority and dueDate are required",
+                    },
+                };
         }
 
         const taskId = randomUUID();
