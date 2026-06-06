@@ -10,7 +10,7 @@ export default function DashboardPage() {
     const [modalMode,   setModalMode]   = useState(null);
     const [editingTask, setEditingTask] = useState(null);
 
-    const { tasks, isLoading, error, refetch } = useGetTasks();
+    const { tasks, setTasks, isLoading, error } = useGetTasks();
     const { createTask } = useCreateTask();
     const { updateTask } = useUpdateTask();
     const { deleteTask } = useDeleteTask();
@@ -44,10 +44,16 @@ export default function DashboardPage() {
 
     async function handleSubmit(values) {
         try {
-            if (modalMode === "create") await createTask(values);
-            else await updateTask(editingTask.taskId, values);
+            if (modalMode === "create") {
+                const newTask = await createTask(values);
+                setTasks(prev => [newTask, ...prev]);
+            } else {
+                const updatedTask = await updateTask(editingTask.taskId, values);
+                setTasks(prev => prev.map(task =>
+                    task.taskId === updatedTask.taskId ? updatedTask : task
+                ));
+            }
 
-            await refetch();
             closeModal();
         } catch (err) {
             console.error(err);
@@ -58,7 +64,7 @@ export default function DashboardPage() {
     async function handleDelete(id) {
         try {
             await deleteTask(id);
-            await refetch();
+            setTasks(prev => prev.filter(task => task.taskId !== id));
         } catch (err) {
             console.error(err);
         }
@@ -66,7 +72,7 @@ export default function DashboardPage() {
 
     async function handleToggleDone(task) {
         try {
-            await updateTask(task.taskId, {
+            const updatedTask = await updateTask(task.taskId, {
                 ...task,
                 status:
                     task.status === "completed"
@@ -74,7 +80,9 @@ export default function DashboardPage() {
                         : "completed",
             });
 
-            await refetch();
+            setTasks(prev => prev.map(item =>
+                item.taskId === updatedTask.taskId ? updatedTask : item
+            ));
         } catch (err) {
             console.error(err);
         }

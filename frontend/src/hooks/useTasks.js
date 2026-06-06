@@ -27,6 +27,7 @@ export function useGetTasks() {
 
     return {
         tasks,
+        setTasks,
         isLoading,
         error,
         refetch: fetchTasks,
