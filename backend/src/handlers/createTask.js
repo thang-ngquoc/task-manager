@@ -5,12 +5,20 @@ const { jsonResponse, parseJsonBody, getUserId } = require("../shared/lambda");
 
 require("dotenv").config();
 
+function isBlank(value) {
+    return value === undefined || value === null || String(value).trim() === "";
+}
+
+function logDynamoStatus(operation, result) {
+    console.log(`DynamoDB ${operation} status:`, result?.$metadata?.httpStatusCode);
+}
+
 async function createTask({ userId, body }) {
     try {
         const {
             title,
             description,
-            priority = "medium",
+            priority,
             dueDate,
             status = "pending",
         } = body;
@@ -24,10 +32,19 @@ async function createTask({ userId, body }) {
             };
         }
 
+        if (isBlank(priority) || isBlank(dueDate)) {
+            return {
+                statusCode: 400,
+                payload: {
+                    message: "priority and dueDate are required fields",
+                },
+            };
+        }
+
         const taskId = randomUUID();
         const createdAt = new Date().toISOString();
 
-        await docClient.send(
+        const result = await docClient.send(
             new PutCommand({
                 TableName: process.env.TABLE_NAME,
                 Item: {
@@ -42,6 +59,7 @@ async function createTask({ userId, body }) {
                 },
             })
         );
+        logDynamoStatus("PutItem", result);
 
         return {
             statusCode: 201,

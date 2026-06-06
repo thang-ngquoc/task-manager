@@ -4,6 +4,14 @@ const { jsonResponse, parseJsonBody, getUserId } = require("../shared/lambda");
 
 require("dotenv").config();
 
+function isBlank(value) {
+    return value === undefined || value === null || String(value).trim() === "";
+}
+
+function logDynamoStatus(operation, result) {
+    console.log(`DynamoDB ${operation} status:`, result?.$metadata?.httpStatusCode);
+}
+
 async function updateTask({ userId, taskId, body }) {
     try {
         if (!userId) {
@@ -47,11 +55,29 @@ async function updateTask({ userId, taskId, body }) {
         }
 
         if (priority !== undefined) {
+            if (isBlank(priority)) {
+                return {
+                    statusCode: 400,
+                    payload: {
+                        message: "priority cannot be empty",
+                    },
+                };
+            }
+
             updates.push("priority = :priority");
             values[":priority"] = priority;
         }
 
         if (dueDate !== undefined) {
+            if (isBlank(dueDate)) {
+                return {
+                    statusCode: 400,
+                    payload: {
+                        message: "dueDate cannot be empty",
+                    },
+                };
+            }
+
             updates.push("dueDate = :dueDate");
             values[":dueDate"] = dueDate;
         }
@@ -91,6 +117,7 @@ async function updateTask({ userId, taskId, body }) {
                 ReturnValues: "ALL_NEW",
             })
         );
+        logDynamoStatus("UpdateItem", result);
 
         return {
             statusCode: 200,

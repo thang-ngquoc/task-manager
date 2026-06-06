@@ -4,6 +4,10 @@ const { jsonResponse, getUserId } = require("../shared/lambda");
 
 require("dotenv").config();
 
+function logDynamoStatus(operation, result) {
+    console.log(`DynamoDB ${operation} status:`, result?.$metadata?.httpStatusCode);
+}
+
 async function getTasks({ userId }) {
     try {
         if (!userId) {
@@ -25,6 +29,7 @@ async function getTasks({ userId }) {
                 },
             })
         );
+        logDynamoStatus("Query", result);
 
         return {
             statusCode: 200,

@@ -4,6 +4,10 @@ const { jsonResponse, getUserId } = require("../shared/lambda");
 
 require("dotenv").config();
 
+function logDynamoStatus(operation, result) {
+    console.log(`DynamoDB ${operation} status:`, result?.$metadata?.httpStatusCode);
+}
+
 async function deleteTask({ userId, taskId }) {
     try {
         if (!userId) {
@@ -24,7 +28,7 @@ async function deleteTask({ userId, taskId }) {
             };
         }
 
-        await docClient.send(
+        const result = await docClient.send(
             new DeleteCommand({
                 TableName: process.env.TABLE_NAME,
                 Key: {
@@ -36,6 +40,7 @@ async function deleteTask({ userId, taskId }) {
                 ConditionExpression: "userId = :uid",
             })
         );
+        logDynamoStatus("DeleteItem", result);
 
         return {
             statusCode: 200,
