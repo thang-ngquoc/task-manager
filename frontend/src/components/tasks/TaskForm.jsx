@@ -17,14 +17,25 @@ export default function TaskForm({ open, onOpenChange, onSubmit, initialValues =
     const [title,       setTitle]       = useState(initialValues.title       ?? "");
     const [description, setDescription] = useState(initialValues.description ?? "");
     const [priority,    setPriority]    = useState(initialValues.priority    ?? "");
+    const [submitError, setSubmitError] = useState("");
     const [date,        setDate]        = useState(
         initialValues.dueDate ? new Date(initialValues.dueDate) : null
     );
 
-    function handleSubmit() {
-        if (!title.trim()) return;
-        onSubmit?.({ title, description, priority, dueDate: date ? format(date, "yyyy-MM-dd") : "" });
-        onOpenChange(false);
+    async function handleSubmit() {
+        setSubmitError("");
+
+        try {
+            await onSubmit?.({
+                title,
+                description,
+                priority,
+                dueDate: date ? format(date, "yyyy-MM-dd") : "",
+            });
+            onOpenChange(false);
+        } catch (err) {
+            setSubmitError(err?.data?.message || err?.message || "Failed to save task");
+        }
     }
 
     return (
@@ -55,6 +66,11 @@ export default function TaskForm({ open, onOpenChange, onSubmit, initialValues =
 
                 {/* Body */}
                 <div className="px-6 pt-5 pb-2 flex flex-col gap-4">
+                    {submitError && (
+                        <p className="rounded-xl border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">
+                            {submitError}
+                        </p>
+                    )}
 
                     {/* Title */}
                     <div className="flex flex-col gap-1.5">
@@ -167,7 +183,6 @@ export default function TaskForm({ open, onOpenChange, onSubmit, initialValues =
                     </Button>
                     <Button
                         onClick={handleSubmit}
-                        disabled={!title.trim()}
                         className={[
                             "flex-1 h-[38px] rounded-xl text-sm font-bold",
                             isEdit

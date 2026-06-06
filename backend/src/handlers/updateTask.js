@@ -45,6 +45,15 @@ async function updateTask({ userId, taskId, body }) {
         const names = {};
 
         if (title !== undefined) {
+            if (isBlank(title)) {
+                return {
+                    statusCode: 400,
+                    payload: {
+                        message: "title cannot be empty",
+                    },
+                };
+            }
+
             updates.push("title = :title");
             values[":title"] = title;
         }

@@ -51,6 +51,7 @@ export default function DashboardPage() {
             closeModal();
         } catch (err) {
             console.error(err);
+            throw err;
         }
     }
 
