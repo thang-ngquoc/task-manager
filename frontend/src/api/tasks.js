@@ -6,7 +6,7 @@ const getAuthHeaders = async () => {
     const token = await getIdToken();
     return {
         "Content-Type": "application/json",
-        Authorization: token,
+        Authorization: `Bearer ${token}`,
     };
 };
 
