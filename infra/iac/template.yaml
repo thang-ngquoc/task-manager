@@ -65,10 +65,10 @@ Parameters:
 
   LambdaReservedConcurrency:
     Type: Number
-    Default: 5
+    Default: 2
     MinValue: 1
     MaxValue: 20
-    Description: Conservative concurrency cap for demo/free-tier safety.
+    Description: Reserved concurrency per Lambda function. Recommended 2 for demo/free-tier; only applied when EnableReservedConcurrency is true.
 
   ApiRateLimit:
     Type: Number
