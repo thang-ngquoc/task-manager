@@ -14,7 +14,7 @@ Parameters:
 
   AllowedOrigin:
     Type: String
-    Default: https://CHANGE-ME.cloudfront.net
+    Default: https://d27zctezk7qpze.cloudfront.net
     Description: >
       CloudFront domain used in CORS, for example https://d1abc123.cloudfront.net.
       Do not use '*'. Deploy once with placeholder if needed, then update after CloudFront is created.
