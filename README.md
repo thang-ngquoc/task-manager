@@ -33,7 +33,7 @@ task-manager/
 └── README.md                     # Project overview and instructions
 ```
 
-# 2. Setup and Run (Local Development)
+# 2. Setup and Run (Linux)
 
 Follow these steps to set up and run the complete stack (Frontend, Backend, and DynamoDB Local) on your machine.
 
@@ -124,9 +124,8 @@ Next, install backend dependencies, create the database tables, and start the ba
 cd backend
 npm install
 
-# Initialize table and seed mock data
+# Initialize table 
 node src/scripts/createTasksTable.js
-node src/scripts/seedTasksData.js
 
 # Start the development server
 npm run dev
