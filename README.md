@@ -27,7 +27,6 @@ task-manager/
 │   ├── package.json
 │   └── vite.config.js            # Vite configuration
 ├── infra/                        # Infrastructure-as-code & AWS setup
-│   ├── console/                  # Console deployment guide
 │   └── iac/                      # SAM/CloudFormation templates
 ├── docker-compose.yml            # Local development orchestration
 └── README.md                     # Project overview and instructions
@@ -124,7 +123,7 @@ Next, install backend dependencies, create the database tables, and start the ba
 cd backend
 npm install
 
-# Initialize table 
+# Initialize table
 node src/scripts/createTasksTable.js
 
 # Start the development server
