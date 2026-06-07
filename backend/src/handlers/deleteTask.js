@@ -8,9 +8,14 @@ function logDynamoStatus(operation, result) {
     console.log(`DynamoDB ${operation} status:`, result?.$metadata?.httpStatusCode);
 }
 
+function logValidationFailure(reason, details = {}) {
+    console.warn("Validation failed in deleteTask:", { reason, ...details });
+}
+
 async function deleteTask({ userId, taskId }) {
     try {
         if (!userId) {
+            logValidationFailure("missing userId", { taskId });
             return {
                 statusCode: 400,
                 payload: {
@@ -20,6 +25,7 @@ async function deleteTask({ userId, taskId }) {
         }
 
         if (!taskId) {
+            logValidationFailure("missing taskId", { userId });
             return {
                 statusCode: 400,
                 payload: {

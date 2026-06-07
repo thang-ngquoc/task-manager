@@ -13,6 +13,10 @@ function logDynamoStatus(operation, result) {
     console.log(`DynamoDB ${operation} status:`, result?.$metadata?.httpStatusCode);
 }
 
+function logValidationFailure(reason, details = {}) {
+    console.warn("Validation failed in createTask:", { reason, ...details });
+}
+
 async function createTask({ userId, body }) {
     try {
         const {
@@ -24,6 +28,7 @@ async function createTask({ userId, body }) {
         } = body;
 
         if (!userId) {
+            logValidationFailure("missing userId");
             return {
                 statusCode: 400,
                 payload: {
@@ -33,6 +38,11 @@ async function createTask({ userId, body }) {
         }
 
         if (isBlank(title) || isBlank(priority) || isBlank(dueDate)) {
+            logValidationFailure("missing required fields", {
+                hasTitle: !isBlank(title),
+                hasPriority: !isBlank(priority),
+                hasDueDate: !isBlank(dueDate),
+            });
             return {
                 statusCode: 400,
                 payload: {

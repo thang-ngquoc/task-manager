@@ -12,9 +12,14 @@ function logDynamoStatus(operation, result) {
     console.log(`DynamoDB ${operation} status:`, result?.$metadata?.httpStatusCode);
 }
 
+function logValidationFailure(reason, details = {}) {
+    console.warn("Validation failed in updateTask:", { reason, ...details });
+}
+
 async function updateTask({ userId, taskId, body }) {
     try {
         if (!userId) {
+            logValidationFailure("missing userId", { taskId });
             return {
                 statusCode: 400,
                 payload: {
@@ -24,6 +29,7 @@ async function updateTask({ userId, taskId, body }) {
         }
 
         if (!taskId) {
+            logValidationFailure("missing taskId", { userId });
             return {
                 statusCode: 400,
                 payload: {
@@ -46,6 +52,7 @@ async function updateTask({ userId, taskId, body }) {
 
         if (title !== undefined) {
             if (isBlank(title)) {
+                logValidationFailure("empty title", { userId, taskId });
                 return {
                     statusCode: 400,
                     payload: {
@@ -65,6 +72,7 @@ async function updateTask({ userId, taskId, body }) {
 
         if (priority !== undefined) {
             if (isBlank(priority)) {
+                logValidationFailure("empty priority", { userId, taskId });
                 return {
                     statusCode: 400,
                     payload: {
@@ -79,6 +87,7 @@ async function updateTask({ userId, taskId, body }) {
 
         if (dueDate !== undefined) {
             if (isBlank(dueDate)) {
+                logValidationFailure("empty dueDate", { userId, taskId });
                 return {
                     statusCode: 400,
                     payload: {
@@ -98,6 +107,7 @@ async function updateTask({ userId, taskId, body }) {
         }
 
         if (updates.length === 0) {
+            logValidationFailure("no fields to update", { userId, taskId });
             return {
                 statusCode: 400,
                 payload: {

@@ -8,9 +8,14 @@ function logDynamoStatus(operation, result) {
     console.log(`DynamoDB ${operation} status:`, result?.$metadata?.httpStatusCode);
 }
 
+function logValidationFailure(reason, details = {}) {
+    console.warn("Validation failed in getTasks:", { reason, ...details });
+}
+
 async function getTasks({ userId }) {
     try {
         if (!userId) {
+            logValidationFailure("missing userId");
             return {
                 statusCode: 400,
                 payload: {
