@@ -2,252 +2,148 @@
 
 ```bash
 task-manager/
+├── backend/                      # Backend Node.js app
+│   ├── package.json
+│   └── src/                      # Main backend source code
+│       ├── handlers/             # Lambda handlers
+│       ├── middleware/           # Express middlewares
+│       ├── routes/               # Express routes
+│       ├── scripts/              # DB setup scripts
+│       ├── shared/               # Shared utilities
+│       └── server.js             # Local express server
 ├── frontend/                     # Frontend React + Vite app
 │   ├── public/                   # Public static files
-│   │   └── favicon.ico           # Website favicon
-│   │
 │   ├── src/                      # Main frontend source code
-│   │   ├── api/                  # Backend API calls
-│   │   │   └── tasksApi.js       # Axios wrapper for calling API Gateway
-│   │   │
-│   │   ├── auth/                 # Authentication handling with Cognito
-│   │   │   ├── AuthContext.jsx   # Global auth state + JWT context
-│   │   │   └── cognito.js        # Cognito / Amplify configuration
-│   │   │
+│   │   ├── api/                  # API integrations
+│   │   ├── auth/                 # AWS Cognito / Amplify auth setup
 │   │   ├── components/           # Reusable UI components
-│   │   │   ├── TaskList.jsx      # Displays the list of tasks
-│   │   │   ├── TaskCard.jsx      # UI for individual task items
-│   │   │   ├── TaskForm.jsx      # Form for creating / editing tasks
-│   │   │   ├── FilterBar.jsx     # Filters by priority / due date
-│   │   │   ├── LoginForm.jsx     # Login form
-│   │   │   └── SignUpForm.jsx    # Account registration form
-│   │   │
-│   │   ├── pages/                # Page components for routing
-│   │   │   ├── HomePage.jsx      # Main task management page
-│   │   │   └── AuthPage.jsx      # Login / signup page
-│   │   │
-│   │   ├── App.jsx               # Root component + routing setup
-│   │   ├── main.jsx              # Entry point for rendering the React app
-│   │   └── index.css             # Global CSS styles
-│   │
-│   ├── .env.example              # Environment variables template (API URL, Cognito IDs...)
-│   ├── vite.config.js            # Vite configuration
-│   └── package.json              # Dependencies + npm scripts
-│
-└── backend/                      # Backend Node.js app
-    ├── src/                      # Main backend source code
-    │   ├── shared/               # Shared helper functions
-    │   │   ├── dynamodb.js       # DynamoDB DocumentClient initialization
-    │   │   ├── response.js       # Helper for creating standard JSON responses
-    │   │   └── auth.js           # JWT/Cognito processing helper (if needed)
-    │   │
-    │   ├── handlers/             # Main Lambda handlers
-    │   │   ├── getTasks.js       # GET /tasks
-    │   │   ├── createTask.js     # POST /tasks
-    │   │   ├── updateTask.js     # PUT /tasks/:id
-    │   │   └── deleteTask.js     # DELETE /tasks/:id
-    │   │
-    │   ├── routes/               # Express local server routes
-    │   │   └── tasks.js          # URL mapping to handlers
-    │   │
-    │   └── local-server.js       # Express server for local development
-    │
-    ├── package.json              # Dependencies + npm scripts
-    ├── .env                      # Local environment variables
-    └── template.yaml             # AWS SAM/IaC configuration (optional)
+│   │   ├── data/                 # Mock data for UI testing
+│   │   ├── hooks/                # Custom React hooks (e.g. useAuth, useTasks)
+│   │   ├── layouts/              # Shared layouts (AppLayout, AuthLayout, Header)
+│   │   ├── lib/                  # Utility functions & constants
+│   │   ├── pages/                # App views (Dashboard, Login, Confirm, etc.)
+│   │   ├── App.jsx               # Root component
+│   │   └── main.jsx              # Entry point
+│   ├── package.json
+│   └── vite.config.js            # Vite configuration
+├── infra/                        # Infrastructure-as-code & AWS setup
+│   ├── console/                  # Console deployment guide
+│   └── iac/                      # SAM/CloudFormation templates
+├── docker-compose.yml            # Local development orchestration
+└── README.md                     # Project overview and instructions
 ```
 
-# 2. Setup and Run
+# 2. Setup and Run (Local Development)
 
-## DynamoDB Local Setup (Linux / WSL)
+Follow these steps to set up and run the complete stack (Frontend, Backend, and DynamoDB Local) on your machine.
 
-Setting up DynamoDB locally allows you to develop and test backend APIs without provisioning AWS resources.
+## Prerequisites
+- **Node.js** (v18 or higher recommended)
+- **Docker** & **Docker Compose** (for running DynamoDB locally)
 
 ---
 
-### 1. Install Docker
+## Step 1: Environment Variables Setup
 
-Install Docker:
+You need to set up environment variables for both the backend and frontend from their respective `.env.example` templates. Replace the Cognito values with your actual user pool and app client IDs.
 
+**Backend:**
 ```bash
-sudo apt update
-sudo apt install docker.io docker-compose-plugin -y
+cd backend
+cp .env.example .env
 ```
 
-Start and enable Docker:
+```env
+# Backend server configuration
 
-```bash
-sudo systemctl start docker
-sudo systemctl enable docker
+PORT=3000
+FRONTEND_URL=http://localhost:5173
+ALLOWED_ORIGIN=http://localhost:5173
+AWS_REGION=ap-southeast-1
+
+DYNAMODB_ENDPOINT=http://localhost:8000
+ACCESS_KEY_ID=fake
+SECRET_ACCESS_KEY=fake
+TABLE_NAME=TasksTable
+
+COGNITO_USER_POOL_ID=your-cognito-user-pool-id
+COGNITO_CLIENT_ID=your-cognito-app-client-id
 ```
 
-Verify installation:
-
+**Frontend:**
+Open a new terminal or go back to the root, then set up the frontend env file:
 ```bash
-docker --version
-docker compose version
+cd frontend
+cp .env.example .env
 ```
 
+```env
+# Frontend configuration
+
+VITE_API_ENDPOINT=http://localhost:3000
+VITE_COGNITO_POOL_ID=your-cognito-user-pool-id
+VITE_COGNITO_CLIENT_ID=your-cognito-app-client-id
+VITE_AWS_REGION=ap-southeast-1
+```
 ---
 
-### 2. Project Structure
+## Step 2: Start DynamoDB Local
 
-Create the `docker/dynamodb` folder with proper permissions:
+We use Docker to run DynamoDB locally. Make sure the data directory exists and has the correct permissions:
 
 ```bash
+# From the project root
+
 mkdir -p docker/dynamodb
 sudo chmod -R 777 docker/dynamodb
 ```
 
-Make sure your project contains the following structure:
-
-```bash
-task-manager/
-├── backend/
-├── frontend/
-├── docker/
-│   └── dynamodb/
-├── docker-compose.yml
-└── .gitignore
-```
-
-The `docker/dynamodb` folder is used to persist DynamoDB Local data.
-
----
-
-### 3. Start DynamoDB Local + Admin UI
-
-Run both containers:
+Start the `dynamodb-local` and `dynamodb-admin` containers in the background:
 
 ```bash
 docker compose up -d
 ```
 
-Verify containers:
+- **DynamoDB Local API:** `http://localhost:8000`
+- **DynamoDB Admin UI:** `http://localhost:8001` (Open in your browser to view tables and data visually)
 
-```bash
-docker ps
-```
+### Docker Cheatsheet
 
-You should see:
-
-- `dynamodb-local`
-- `dynamodb-admin`
-
----
-
-### 4. Access DynamoDB
-
-#### DynamoDB Local Endpoint
-
-```txt
-http://localhost:8000
-```
-
-#### DynamoDB Admin UI
-
-Open in browser:
-
-```txt
-http://localhost:8001
-```
-
-The admin UI allows you to:
-
-- View tables
-- Insert / edit / delete items
-- Scan table data
-- Inspect records visually
+Here are some helpful commands for managing your local DynamoDB setup:
+- **View logs:** `docker logs dynamodb-local` (or `dynamodb-admin`)
+- **Stop containers:** `docker compose down`
+- **Stop and wipe database data:** `docker compose down -v`
 
 ---
 
-### 5. Stop / Restart Containers
+## Step 3: Initialize Database & Run Backend
 
-#### Stop containers
-
-```bash
-docker compose down
-```
-
-#### Restart containers
-
-```bash
-docker compose up -d
-```
-
----
-
-### 6. Initialize Database Tables
-
-Run the setup scripts:
-
-```bash
-cd backend
-
-node src/scripts/createTasksTable.js
-node src/scripts/seedTasksData.js
-```
-
-These scripts will:
-
-- Create the `TasksTable`
-- Create the `userId-index` GSI
-- Seed mock task data
-
----
-
-### 7. Common Commands
-
-#### View running containers
-
-```bash
-docker ps
-```
-
-#### View container logs
-
-```bash
-docker logs dynamodb-local
-docker logs dynamodb-admin
-```
-
-#### Remove all containers
-
-```bash
-docker compose down
-```
-
-#### Remove containers + volumes
-
-```bash
-docker compose down -v
-```
-
-## Running the Backend 
-Before running the backend, ensure that your `.env` file is properly configured with the correct DynamoDB endpoint and credentials (as shown in the example above).
-
-```bash
-PORT=3000
-AWS_REGION="local"
-DYNAMODB_ENDPOINT="http://localhost:8000"
-ACCESS_KEY_ID="fake"
-SECRET_ACCESS_KEY="fake"
-TABLE_NAME="TasksTable"
-```
-
-To run the backend locally, use the following command in the root directory:
+Next, install backend dependencies, create the database tables, and start the backend server.
 
 ```bash
 cd backend
 npm install
+
+# Initialize table and seed mock data
+node src/scripts/createTasksTable.js
+node src/scripts/seedTasksData.js
+
+# Start the development server
 npm run dev
 ```
 
-## Running the Frontend
-To run the frontend, use the following command in the root directory:
+The backend server will start listening at `http://localhost:3000` (or the port defined in your `.env`).
+
+---
+
+## Step 4: Run the Frontend
+
+In a separate terminal window, navigate to the frontend directory, install dependencies, and start the development server:
 
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+
+The frontend will be available at `http://localhost:5173` (or the port defined in your `.env`).
