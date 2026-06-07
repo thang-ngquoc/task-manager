@@ -1,6 +1,8 @@
 const allowedOrigin = process.env.ALLOWED_ORIGIN || "";
 
 function jsonResponse(statusCode, payload) {
+    console.log("Lambda response statusCode:", statusCode);
+
     return {
         statusCode,
         headers: {

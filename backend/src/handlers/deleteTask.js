@@ -9,7 +9,7 @@ function logDynamoStatus(operation, result) {
 }
 
 function logValidationFailure(reason, details = {}) {
-    console.warn("Validation failed in deleteTask:", { reason, ...details });
+    console.error(new Error(`Validation failed in deleteTask: ${reason}`), details);
 }
 
 async function deleteTask({ userId, taskId }) {
@@ -55,7 +55,7 @@ async function deleteTask({ userId, taskId }) {
             },
         };
     } catch (error) {
-        console.log("Error deleting task:", error);
+        console.error("Error deleting task:", error);
 
         if (error.name === "ConditionalCheckFailedException") {
             return {

@@ -13,7 +13,7 @@ function logDynamoStatus(operation, result) {
 }
 
 function logValidationFailure(reason, details = {}) {
-    console.warn("Validation failed in updateTask:", { reason, ...details });
+    console.error(new Error(`Validation failed in updateTask: ${reason}`), details);
 }
 
 async function updateTask({ userId, taskId, body }) {

@@ -14,7 +14,7 @@ function logDynamoStatus(operation, result) {
 }
 
 function logValidationFailure(reason, details = {}) {
-    console.warn("Validation failed in createTask:", { reason, ...details });
+    console.error(new Error(`Validation failed in createTask: ${reason}`), details);
 }
 
 async function createTask({ userId, body }) {
@@ -47,8 +47,8 @@ async function createTask({ userId, body }) {
                 statusCode: 400,
                 payload: {
                     message: "Title, priority and dueDate are required",
-                    },
-                };
+                },
+            };
         }
 
         const taskId = randomUUID();
@@ -88,7 +88,7 @@ async function createTask({ userId, body }) {
             },
         };
     } catch (error) {
-        console.log("Error creating task:", error);
+        console.error("Error creating task:", error);
         return {
             statusCode: 500,
             payload: {
